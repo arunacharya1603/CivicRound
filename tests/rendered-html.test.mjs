@@ -21,8 +21,8 @@ test("server-renders the CivicRound entry experience", async () => {
 
   const html = await response.text();
   assert.match(html, /<title>CivicRound<\/title>/i);
-  assert.match(html, /Enter the arena with a name, not a profile/i);
-  assert.match(html, /Build my round/i);
+  assert.match(html, /Enter the round as yourself./i);
+  assert.match(html, /Continue to motion/i);
   assert.match(html, /18\+/i);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Your site is taking shape/i);
 });

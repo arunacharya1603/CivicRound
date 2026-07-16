@@ -110,7 +110,8 @@ export function ReportDialog({
                 value={details}
                 onChange={(event) => setDetails(event.target.value)}
                 maxLength={500}
-                rows={4}                className="mt-2 w-full resize-none rounded-sm border border-input bg-background p-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                rows={4}
+                className="mt-2 w-full resize-none rounded-sm border border-input bg-background p-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                 placeholder="What happened?"
               />
             </div>

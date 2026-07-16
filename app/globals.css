@@ -1,24 +1,24 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0b0e0e;
-  --foreground: #f3f1e8;
-  --card: #121616;
-  --card-foreground: #f3f1e8;
-  --popover: #121616;
-  --popover-foreground: #f3f1e8;
-  --primary: #d7ff5f;
-  --primary-foreground: #101300;
-  --secondary: #36d6c0;
-  --secondary-foreground: #041311;
-  --muted: #1b2020;
-  --muted-foreground: #9da8a5;
-  --accent: #ff7048;
-  --accent-foreground: #1f0802;
-  --destructive: #ff5c56;
-  --border: #29302f;
-  --input: #3a4442;
-  --ring: #d7ff5f;
+  --background: #090a0b;
+  --foreground: #f5f2eb;
+  --card: #111315;
+  --card-foreground: #f5f2eb;
+  --popover: #111315;
+  --popover-foreground: #f5f2eb;
+  --primary: #ff552e;
+  --primary-foreground: #140703;
+  --secondary: #41d4bc;
+  --secondary-foreground: #031310;
+  --muted: #181b1d;
+  --muted-foreground: #989d9e;
+  --accent: #f2c14d;
+  --accent-foreground: #171002;
+  --destructive: #ff5964;
+  --border: #2a2e31;
+  --input: #3a3f42;
+  --ring: #ff552e;
 }
 
 @theme inline {
@@ -41,7 +41,7 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --font-sans: var(--font-body);
-  --font-display: var(--font-body);
+  --font-display: "Iowan Old Style", Baskerville, "Times New Roman", serif;
   --font-mono: var(--font-mono);
 }
 
@@ -69,19 +69,16 @@ select {
 }
 
 ::selection {
-  background: #d7ff5f;
-  color: #101300;
+  background: #ff552e;
+  color: #140703;
 }
 
 .font-display {
-  font-family: var(--font-display), Arial, Helvetica, sans-serif;
+  font-family: "Iowan Old Style", Baskerville, "Times New Roman", serif;
 }
 
 .arena-grid {
-  background-image:
-    linear-gradient(rgba(215, 255, 95, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(215, 255, 95, 0.035) 1px, transparent 1px);
-  background-size: 32px 32px;
+  background: var(--background);
 }
 
 .broadcast-rule {
@@ -92,14 +89,23 @@ select {
   position: absolute;
   left: 0;
   top: 0;
-  height: 1px;
-  width: 54px;
+  height: 2px;
+  width: 56px;
   content: "";
   background: var(--primary);
 }
 
+.text-balance {
+  text-wrap: balance;
+}
+
+.surface-lift {
+  box-shadow: 0 18px 60px rgb(0 0 0 / 0.22);
+}
+
 @keyframes live-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.45;
     transform: scale(0.9);
   }
@@ -125,7 +131,7 @@ select {
 }
 
 .screen-enter {
-  animation: scan-in 240ms ease-out both;
+  animation: scan-in 220ms ease-out both;
 }
 
 @media (prefers-reduced-motion: reduce) {

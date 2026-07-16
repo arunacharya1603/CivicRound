@@ -101,17 +101,24 @@ export function MatchStep({
   };
 
   return (
-    <section className="screen-enter mx-auto max-w-5xl">
-      <div className="mb-6 flex items-end justify-between border-b border-border pb-5">
+    <section className="screen-enter mx-auto max-w-6xl">
+      <header className="mb-8 flex flex-col justify-between gap-5 border-b border-border pb-7 sm:flex-row sm:items-end">
         <div>
-          <p className="font-mono text-[10px] uppercase text-primary">
-            Matchmaking / Opposing stance
-          </p>
-          <h1 className="mt-2 font-display text-4xl font-semibold">
-            {match ? "Match locked." : "Find the other side."}
+          <div className="flex items-center gap-2 font-mono text-[10px] uppercase text-primary">
+            <Swords className="size-4" />
+            Opposing stance
+          </div>
+          <h1 className="text-balance mt-3 font-display text-4xl font-semibold leading-none sm:text-5xl">
+            {match ? "Your round is ready." : "Find the other side."}
           </h1>
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground">
+            {match
+              ? "Both debaters are present. Enter when you are ready."
+              : "Join the public queue or send a private invite to someone you know."}
+          </p>
         </div>
-        <div className="hidden items-center gap-2 font-mono text-[10px] uppercase text-muted-foreground sm:flex">
+
+        <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
           <span
             className={cn(
               "size-1.5 rounded-full",
@@ -120,42 +127,56 @@ export function MatchStep({
           />
           {isSearching ? "Scanning" : match ? "Room ready" : "Queue open"}
         </div>
-      </div>
+      </header>
 
-      <div className="border border-border bg-card">
-        <div className="grid min-h-[320px] items-center gap-8 p-6 sm:p-10 lg:grid-cols-[1fr_auto_1fr]">
-          <DebaterPlate name={profile.displayName} stance={setup.stance} active />          <div className="grid place-items-center">
-            <div className="grid size-16 place-items-center rounded-full border border-border bg-background font-display text-xl font-bold">
+      <div className="min-w-0">
+        <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1fr)_56px_minmax(0,1fr)] md:items-stretch lg:gap-6">
+          <DebaterPlate
+            name={profile.displayName}
+            stance={setup.stance}
+            label="You"
+            active
+          />
+
+          <div className="flex min-h-10 items-center justify-center gap-3 md:min-h-48 md:flex-col">
+            <span className="h-px flex-1 bg-border md:h-auto md:w-px" />
+            <span className="grid size-10 shrink-0 place-items-center rounded-full border border-border bg-background font-mono text-[10px] font-bold">
               VS
-            </div>
+            </span>
+            <span className="h-px flex-1 bg-border md:h-auto md:w-px" />
           </div>
+
           {match ? (
             <DebaterPlate
               name={match.opponentName}
               stance={match.opponentStance}
+              label="Opponent"
               active
             />
           ) : (
-            <div className="grid min-h-48 place-items-center border border-dashed border-border bg-background">
+            <div className="grid min-h-48 min-w-0 place-items-center border border-dashed border-border bg-background p-5">
               <div className="text-center">
                 {isSearching ? (
-                  <Radar className="pulse-ring mx-auto size-10 text-primary" />
+                  <Radar className="pulse-ring mx-auto size-9 text-primary" />
                 ) : (
-                  <UsersRound className="mx-auto size-10 text-muted-foreground" />
+                  <UsersRound className="mx-auto size-9 text-muted-foreground" />
                 )}
-                <p className="mt-4 font-mono text-[10px] uppercase text-muted-foreground">
+                <p className="mt-4 text-sm font-semibold">
+                  {isSearching ? "Looking for a debater" : "Opponent slot open"}
+                </p>
+                <p className="mt-1 font-mono text-[9px] uppercase text-muted-foreground">
                   {isSearching
                     ? setup.inviteCode
                       ? "Claiming private match"
                       : "Searching opposite stance"
-                    : "Opponent slot open"}
+                    : "Waiting for your action"}
                 </p>
               </div>
             </div>
           )}
         </div>
 
-        <div className="border-t border-border p-5">
+        <div className="mt-6 border-y border-border py-5">
           {match ? (
             <Button size="lg" className="w-full" onClick={() => onMatched(match)}>
               Enter live room
@@ -183,7 +204,9 @@ export function MatchStep({
                   disabled={isSearching || inviteCreation.isPending}
                 >
                   <Link2 />
-                  {inviteCreation.isPending ? "Creating invite" : "Invite someone"}
+                  {inviteCreation.isPending
+                    ? "Creating invite"
+                    : "Invite someone"}
                 </Button>
               ) : null}
             </div>
@@ -196,7 +219,7 @@ export function MatchStep({
           ) : null}
 
           {inviteUrl ? (
-            <div className="mt-4 flex items-center gap-3 border border-border bg-background p-3">
+            <div className="mt-4 flex min-w-0 items-center gap-3 border border-border bg-background p-3">
               <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-muted-foreground">
                 {inviteUrl}
               </span>
@@ -217,7 +240,7 @@ export function MatchStep({
         </div>
       </div>
 
-      <Button variant="ghost" onClick={leaveMatchmaking} className="mt-5">
+      <Button variant="ghost" onClick={leaveMatchmaking} className="mt-4">
         <ArrowLeft />
         Back
       </Button>
@@ -228,37 +251,56 @@ export function MatchStep({
 function DebaterPlate({
   name,
   stance,
+  label,
   active,
 }: {
   name: string;
   stance: "support" | "challenge";
+  label: string;
   active: boolean;
 }) {
   return (
     <div
       className={cn(
-        "border bg-background p-5",        active ? "border-primary" : "border-border",
+        "flex min-h-48 min-w-0 flex-col justify-between border bg-background p-5",
+        active ? "border-muted-foreground" : "border-border",
       )}
     >
-      <div
-        className={cn(
-          "grid size-16 place-items-center rounded-full font-display text-2xl font-bold",
-          stance === "support"
-            ? "bg-secondary text-secondary-foreground"
-            : "bg-accent text-accent-foreground",
-        )}
-      >
-        {name.slice(0, 1).toUpperCase()}
+      <div className="flex items-center justify-between">
+        <span className="font-mono text-[9px] uppercase text-muted-foreground">
+          {label}
+        </span>
+        <span
+          className={cn(
+            "size-2 rounded-full",
+            stance === "support" ? "bg-secondary" : "bg-accent",
+          )}
+        />
       </div>
-      <p className="mt-5 font-display text-2xl font-semibold">{name}</p>
-      <p
-        className={cn(
-          "mt-2 font-mono text-[10px] uppercase",
-          stance === "support" ? "text-secondary" : "text-accent",
-        )}
-      >
-        {stance}
-      </p>
+
+      <div className="mt-8 min-w-0">
+        <div
+          className={cn(
+            "grid size-12 place-items-center rounded-full font-display text-xl font-bold",
+            stance === "support"
+              ? "bg-secondary text-secondary-foreground"
+              : "bg-accent text-accent-foreground",
+          )}
+        >
+          {name.slice(0, 1).toUpperCase()}
+        </div>
+        <p className="mt-4 truncate font-display text-2xl font-semibold">
+          {name}
+        </p>
+        <p
+          className={cn(
+            "mt-1 font-mono text-[9px] uppercase",
+            stance === "support" ? "text-secondary" : "text-accent",
+          )}
+        >
+          {stance}
+        </p>
+      </div>
     </div>
   );
 }

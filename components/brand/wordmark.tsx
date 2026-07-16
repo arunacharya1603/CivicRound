@@ -2,18 +2,29 @@ import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 
-export function Wordmark({ compact = false, className }: { compact?: boolean; className?: string }) {
+export function Wordmark({
+  compact = false,
+  className,
+}: {
+  compact?: boolean;
+  className?: string;
+}) {
   return (
     <Link
       href="/"
-      className={cn("inline-flex items-center gap-2 font-display font-bold text-foreground", className)}
+      className={cn("inline-flex items-center gap-3 text-foreground", className)}
       aria-label="CivicRound home"
     >
-      <span className="grid size-7 place-items-center rounded-sm border border-primary/60 bg-primary text-sm font-black text-primary-foreground">
-        C
+      <span className="h-6 w-1 rounded-sm bg-primary" aria-hidden="true" />
+      <span
+        className={cn(
+          "font-display text-xl font-semibold leading-none sm:text-2xl",
+          compact && "hidden sm:inline",
+        )}
+      >
+        CivicRound
       </span>
-      <span className={cn("text-lg", compact && "hidden sm:inline")}>CivicRound</span>
-      <span className="border-l border-border pl-2 font-mono text-[9px] font-semibold uppercase text-muted-foreground">
+      <span className="hidden border-l border-border pl-3 font-mono text-[9px] uppercase text-muted-foreground sm:inline">
         Beta
       </span>
     </Link>

@@ -150,7 +150,8 @@ export function LiveKitDebateRoom({
       onDisconnected={finishOnce}
       className="min-h-[calc(100vh-64px)]"
     >
-      <LiveRoomSurface        session={session}
+      <LiveRoomSurface
+        session={session}
         setup={setup}
         topic={topic}
         onLeave={finishOnce}
@@ -278,12 +279,13 @@ function LiveRoomSurface({
   }
 
   return (
-    <section className="mx-auto max-w-[1440px] px-3 py-4 sm:px-6 lg:px-8">
+    <section className="mx-auto max-w-[1280px] px-3 py-4 sm:px-6 lg:px-8">
       <div className="grid gap-3 border border-border bg-card p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-4">
         <div className="min-w-0">
           <p className="font-mono text-[9px] uppercase text-muted-foreground">
             {topic.category} / Authorized live room
-          </p>          <h1 className="mt-1 truncate font-display text-lg font-semibold sm:text-2xl">
+          </p>
+          <h1 className="mt-1 truncate font-display text-lg font-semibold sm:text-2xl">
             {topic.statement}
           </h1>
         </div>
@@ -324,7 +326,7 @@ function LiveRoomSurface({
             <div
               key={trackRef.participant.identity}
               className={cn(
-                "relative aspect-video overflow-hidden rounded border-2 bg-black",
+                "relative aspect-video overflow-hidden rounded-sm border bg-black",
                 active
                   ? isLocal
                     ? "border-primary"
@@ -350,7 +352,7 @@ function LiveRoomSurface({
         })}
 
         {tracks.length < 2 ? (
-          <div className="grid aspect-video place-items-center rounded border-2 border-dashed border-border bg-black">
+          <div className="grid aspect-video place-items-center rounded-sm border border-dashed border-border bg-black">
             <div className="text-center">
               <LoaderCircle className="mx-auto size-6 animate-spin text-primary" />
               <p className="mt-3 font-mono text-[10px] uppercase text-muted-foreground">
@@ -382,7 +384,8 @@ function LiveRoomSurface({
               <span className="mr-2">0{index + 1}</span>
               {phase.label}
             </div>
-          ))}        </div>
+          ))}
+        </div>
 
         <LiveControls
           canSpeak={isYourTurn}
@@ -421,7 +424,7 @@ function LiveControls({
   }, [canSpeak, isMicrophoneEnabled, localParticipant]);
 
   return (
-    <div className="flex items-center justify-center gap-2 rounded border border-border bg-card p-2">
+    <div className="flex items-center justify-center gap-2 rounded-sm border border-border bg-card p-2">
       <Button
         size="icon"
         variant={isMicrophoneEnabled ? "ghost" : "destructive"}
