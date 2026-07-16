@@ -119,6 +119,46 @@ select {
   animation: live-pulse 1.4s ease-in-out infinite;
 }
 
+@keyframes opponent-search-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes opponent-search-radar {
+  0%,
+  100% {
+    opacity: 0.68;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes opponent-search-copy {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.opponent-search-orbit {
+  animation: opponent-search-orbit 3.4s linear infinite;
+}
+
+.opponent-search-radar {
+  animation: opponent-search-radar 1.7s ease-in-out infinite;
+}
+
+.opponent-search-copy {
+  animation: opponent-search-copy 220ms ease-out both;
+}
 @keyframes scan-in {
   from {
     opacity: 0;
@@ -136,7 +176,10 @@ select {
 
 @media (prefers-reduced-motion: reduce) {
   .live-dot,
-  .screen-enter {
+  .screen-enter,
+  .opponent-search-orbit,
+  .opponent-search-radar,
+  .opponent-search-copy {
     animation: none;
   }
 }

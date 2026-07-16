@@ -8,6 +8,8 @@ import {
   Check,
   Copy,
   Link2,
+  LoaderCircle,
+  Orbit,
   Radar,
   Swords,
   UsersRound,
@@ -154,24 +156,29 @@ export function MatchStep({
               active
             />
           ) : (
-            <div className="grid min-h-48 min-w-0 place-items-center border border-dashed border-border bg-background p-5">
-              <div className="text-center">
-                {isSearching ? (
-                  <Radar className="pulse-ring mx-auto size-9 text-primary" />
-                ) : (
+            <div
+              className={cn(
+                "grid min-h-48 min-w-0 place-items-center border border-dashed bg-background p-5 transition-colors duration-300",
+                isSearching
+                  ? "border-primary/45 bg-primary/[0.025]"
+                  : "border-border",
+              )}
+            >
+              {isSearching ? (
+                <OpponentSearchState
+                  privateMatch={Boolean(setup.inviteCode)}
+                />
+              ) : (
+                <div className="text-center">
                   <UsersRound className="mx-auto size-9 text-muted-foreground" />
-                )}
-                <p className="mt-4 text-sm font-semibold">
-                  {isSearching ? "Looking for a debater" : "Opponent slot open"}
-                </p>
-                <p className="mt-1 font-mono text-[9px] uppercase text-muted-foreground">
-                  {isSearching
-                    ? setup.inviteCode
-                      ? "Claiming private match"
-                      : "Searching opposite stance"
-                    : "Waiting for your action"}
-                </p>
-              </div>
+                  <p className="mt-4 text-sm font-semibold">
+                    Opponent slot open
+                  </p>
+                  <p className="mt-1 font-mono text-[9px] uppercase text-muted-foreground">
+                    Waiting for your action
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -189,7 +196,11 @@ export function MatchStep({
                 onClick={() => matchmaking.mutate()}
                 disabled={isSearching || inviteCreation.isPending}
               >
-                <Swords />
+                {matchmaking.isPending ? (
+                  <LoaderCircle className="animate-spin" />
+                ) : (
+                  <Swords />
+                )}
                 {matchmaking.isPending
                   ? "Finding opponent"
                   : setup.inviteCode
@@ -248,6 +259,61 @@ export function MatchStep({
   );
 }
 
+const SEARCH_MESSAGES = [
+  "Scanning available debaters",
+  "Checking the opposite stance",
+  "Holding your place in queue",
+] as const;
+
+function OpponentSearchState({
+  privateMatch,
+}: {
+  privateMatch: boolean;
+}) {
+  const [messageIndex, setMessageIndex] = useState(0);
+
+  useEffect(() => {
+    if (privateMatch) return;
+
+    const timer = window.setInterval(() => {
+      setMessageIndex((current) => (current + 1) % SEARCH_MESSAGES.length);
+    }, 1800);
+
+    return () => window.clearInterval(timer);
+  }, [privateMatch]);
+
+  return (
+    <div
+      className="text-center"
+      role="status"
+      aria-label={
+        privateMatch
+          ? "Waiting for the invited debater"
+          : "Searching for a debater with the opposite stance"
+      }
+    >
+      <div
+        className="relative mx-auto grid size-20 place-items-center"
+        aria-hidden="true"
+      >
+        <Orbit className="opponent-search-orbit absolute size-20 text-primary/45" />
+        <Radar className="opponent-search-radar size-9 text-primary" />
+      </div>
+      <p className="mt-3 text-sm font-semibold">
+        {privateMatch ? "Waiting for your invite" : "Looking for a debater"}
+      </p>
+      <p
+        key={privateMatch ? "private" : messageIndex}
+        className="opponent-search-copy mt-1 font-mono text-[9px] uppercase text-muted-foreground"
+        aria-hidden="true"
+      >
+        {privateMatch
+          ? "Private match link is active"
+          : SEARCH_MESSAGES[messageIndex]}
+      </p>
+    </div>
+  );
+}
 function DebaterPlate({
   name,
   stance,
