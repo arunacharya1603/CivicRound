@@ -128,81 +128,91 @@ export function MatchStep({
 
   return (
     <section className="screen-enter relative isolate flex min-h-[calc(100svh-3rem)] items-center justify-center overflow-hidden px-3 py-4 sm:px-6 sm:py-6 lg:min-h-[calc(100svh-3.5rem)] lg:px-8">
-      <div className="pointer-events-none absolute inset-0 -z-30 bg-[radial-gradient(circle_at_50%_46%,rgba(0,240,255,0.045),transparent_30%),radial-gradient(circle_at_18%_88%,rgba(56,232,198,0.025),transparent_24%)]" />
-      <div className="pointer-events-none absolute left-1/2 top-[48%] -z-20 size-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/[0.025] sm:size-[48rem]" />
+      <div className="pointer-events-none absolute inset-0 -z-20 bg-[radial-gradient(circle_at_50%_34%,rgba(0,240,255,0.045),transparent_28%),linear-gradient(rgba(255,255,255,0.012)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.012)_1px,transparent_1px)] bg-[size:auto,60px_60px,60px_60px]" />
 
-      <div className="w-full max-w-[64rem]">
-        <header className="text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.07] bg-white/[0.025] px-3 py-1.5 font-mono text-[8px] font-semibold uppercase tracking-[0.2em] text-muted-foreground sm:text-[9px]">
-            <span
-              className={cn(
-                "size-1.5 rounded-full",
-                match
-                  ? "bg-secondary"
-                  : isSearching
-                    ? "live-dot bg-primary"
-                    : "bg-white/30",
-              )}
-            />
-            {match
-              ? "Match confirmed"
-              : isSearching
-                ? "Searching public queue"
-                : setup.inviteCode
-                  ? "Private matchmaking"
-                  : "Public matchmaking"}
+      <div className="w-full max-w-[56rem] overflow-hidden rounded-[1.5rem] border border-white/[0.08] bg-[#090c11]/95 shadow-[0_32px_110px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.025)] backdrop-blur-xl sm:rounded-[2rem]">
+        <header className="border-b border-white/[0.07] px-5 py-5 sm:px-7 sm:py-6">
+          <div className="flex items-center justify-between gap-3">
+            <div className="inline-flex items-center gap-2 font-mono text-[8px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:text-[9px]">
+              <span
+                className={cn(
+                  "size-1.5 rounded-full",
+                  match
+                    ? "bg-secondary"
+                    : isSearching
+                      ? "live-dot bg-primary"
+                      : "bg-white/30",
+                )}
+              />
+              {match
+                ? "Match confirmed"
+                : isSearching
+                  ? "Queue in progress"
+                  : setup.inviteCode
+                    ? "Private queue"
+                    : "Public queue"}
+            </div>
+
+            <button
+              type="button"
+              onClick={leaveMatchmaking}
+              className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/[0.06] px-2.5 text-[9px] text-muted-foreground transition-colors hover:border-white/10 hover:bg-white/[0.035] hover:text-foreground sm:px-3 sm:text-[10px]"
+            >
+              <ArrowLeft className="size-3" />
+              Signal check
+            </button>
           </div>
 
-          <h1 className="mt-3 font-display text-3xl font-bold leading-none tracking-[-0.045em] sm:mt-4 sm:text-4xl lg:text-5xl">
+          <h1 className="mt-4 font-display text-2xl font-bold tracking-[-0.04em] sm:text-3xl">
             {match
-              ? "Opponent found"
+              ? "Your opponent is ready"
               : isSearching
-                ? "Searching the arena"
+                ? "Finding the right opponent"
                 : "Find your opponent"}
           </h1>
-          <p className="mx-auto mt-2 max-w-xl text-xs leading-5 text-muted-foreground sm:mt-3 sm:text-sm sm:leading-6">
+          <p className="mt-1.5 max-w-xl text-xs leading-5 text-muted-foreground sm:text-sm">
             {match
-              ? "Both positions are locked. Your live room is ready."
+              ? "Both sides are confirmed. Enter the room when you are ready."
               : isSearching
-                ? "We are looking for a debater ready to defend the other side."
-                : "We will pair you with someone taking the opposite position."}
+                ? "We are matching this motion with someone defending the other side."
+                : "One motion, two positions, and a focused live debate."}
           </p>
         </header>
 
-        <div className="mx-auto mt-4 grid max-w-3xl gap-2 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-2 shadow-[0_18px_60px_rgba(0,0,0,0.18)] sm:mt-5 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:gap-0 sm:rounded-full sm:p-1.5">
-          <div className="flex min-w-0 items-center gap-2 rounded-xl px-2 py-1.5 text-left sm:rounded-full sm:px-3">
-            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary/[0.08] text-primary">
+        <div className="border-b border-white/[0.07] bg-white/[0.018] sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-stretch">
+          <div className="flex min-w-0 items-center gap-3 px-5 py-3.5 sm:px-7 sm:py-4">
+            <span className="grid size-8 shrink-0 place-items-center rounded-full border border-primary/15 bg-primary/[0.07] text-primary">
               <Swords className="size-3.5" />
             </span>
             <div className="min-w-0">
-              <p className="font-mono text-[7px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/50">
-                Motion
+              <p className="font-mono text-[7px] font-semibold uppercase tracking-[0.17em] text-muted-foreground/50 sm:text-[8px]">
+                Selected motion
               </p>
-              <p className="truncate text-[10px] font-semibold text-foreground sm:text-[11px]">
+              <p className="mt-0.5 truncate text-[11px] font-semibold text-foreground sm:text-xs">
                 {topic.statement}
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 divide-x divide-white/[0.08] border-t border-white/[0.07] sm:border-l sm:border-t-0">
-            <div className="min-w-[5.5rem] px-3 py-1.5 text-center">
-              <p className="font-mono text-[7px] uppercase tracking-[0.15em] text-muted-foreground/45">
-                Your side
+          <div className="grid grid-cols-2 divide-x divide-white/[0.07] border-t border-white/[0.07] sm:border-l sm:border-t-0">
+            <div className="min-w-[6.75rem] px-4 py-3 text-center sm:flex sm:flex-col sm:justify-center">
+              <p className="font-mono text-[7px] uppercase tracking-[0.16em] text-muted-foreground/45">
+                Your position
               </p>
               <p
                 className={cn(
-                  "mt-0.5 text-[10px] font-semibold",
+                  "mt-1 text-[10px] font-semibold",
                   setup.stance === "support" ? "text-secondary" : "text-accent",
                 )}
               >
                 {setup.stance === "support" ? "Support" : "Against"}
               </p>
             </div>
-            <div className="min-w-[4.5rem] px-3 py-1.5 text-center">
-              <p className="font-mono text-[7px] uppercase tracking-[0.15em] text-muted-foreground/45">
-                Round
+            <div className="min-w-[5.5rem] px-4 py-3 text-center sm:flex sm:flex-col sm:justify-center">
+              <p className="font-mono text-[7px] uppercase tracking-[0.16em] text-muted-foreground/45">
+                Duration
               </p>
-              <p className="mt-0.5 flex items-center justify-center gap-1 text-[10px] font-semibold text-foreground">
+              <p className="mt-1 flex items-center justify-center gap-1 text-[10px] font-semibold text-foreground">
                 <Clock3 className="size-3 text-primary" />
                 {setup.duration / 60} min
               </p>
@@ -210,62 +220,77 @@ export function MatchStep({
           </div>
         </div>
 
-        <div className="relative mx-auto mt-4 max-w-[58rem] overflow-hidden border-y border-white/[0.07] py-5 sm:mt-6 sm:py-7">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_50%,rgba(56,232,198,0.055),transparent_23%),radial-gradient(circle_at_75%_50%,rgba(0,240,255,0.035),transparent_23%)]" />
-          <div className="pointer-events-none absolute left-1/2 top-1/2 size-[23rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-white/[0.035]" />
-
-          <div className="relative grid grid-cols-[minmax(0,1fr)_3.25rem_minmax(0,1fr)] items-center gap-1 sm:grid-cols-[minmax(0,1fr)_7rem_minmax(0,1fr)] sm:gap-3">
-            <Avatar
-              name={profile.displayName}
-              stance={setup.stance}
-              label="You"
-              ready
-            />
-
-            <div className="relative flex min-h-36 flex-col items-center justify-center sm:min-h-48">
-              <span className="absolute left-[-1.75rem] right-[-1.75rem] top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-transparent via-primary/30 to-transparent sm:left-[-3rem] sm:right-[-3rem]" />
-              <span className="absolute left-1/2 top-1/2 size-20 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/[0.04] blur-2xl" />
-              <span className="relative grid size-10 place-items-center rounded-full border border-white/10 bg-[#0d1116] font-display text-[9px] font-bold tracking-[0.16em] text-foreground shadow-[0_12px_34px_rgba(0,0,0,0.38)] sm:size-12 sm:text-[10px]">
-                VS
-                <span className="absolute inset-1 rounded-full border border-primary/10" />
+        <div className="px-4 py-4 sm:px-7 sm:py-6">
+          <div className="grid grid-cols-[minmax(0,1fr)_2.75rem_minmax(0,1fr)] items-stretch gap-1.5 sm:grid-cols-[minmax(0,1fr)_4.5rem_minmax(0,1fr)] sm:gap-3">
+            <div className="relative flex min-h-[13.5rem] min-w-0 items-center justify-center overflow-hidden rounded-[1.25rem] border border-secondary/15 bg-[radial-gradient(circle_at_50%_42%,rgba(56,232,198,0.09),transparent_58%)] p-3 sm:min-h-[15rem] sm:rounded-[1.5rem] sm:p-5">
+              <span className="absolute left-3 top-3 font-mono text-[7px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/45">
+                Your seat
               </span>
-              <span className="relative mt-3 hidden rounded-full border border-white/[0.06] bg-black/20 px-2.5 py-1 font-mono text-[7px] uppercase tracking-[0.14em] text-muted-foreground/55 sm:inline">
-                Opposite sides
+              <span className="absolute right-3 top-3 inline-flex items-center gap-1 text-[8px] font-medium text-secondary">
+                <Check className="size-3" />
+                Ready
+              </span>
+              <Avatar
+                name={profile.displayName}
+                stance={setup.stance}
+                ready
+              />
+            </div>
+
+            <div className="relative flex items-center justify-center">
+              <span className="absolute left-0 right-0 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-white/[0.04] via-primary/25 to-white/[0.04]" />
+              <span className="relative grid size-9 place-items-center rounded-full border border-white/10 bg-[#0d1015] font-display text-[8px] font-bold tracking-[0.14em] text-foreground shadow-[0_10px_30px_rgba(0,0,0,0.38)] sm:size-11 sm:text-[9px]">
+                VS
               </span>
             </div>
 
             {match ? (
-              <Avatar
-                name={match.opponentName}
-                stance={match.opponentStance}
-                label="Opponent"
-                ready
-              />
+              <div className="relative flex min-h-[13.5rem] min-w-0 items-center justify-center overflow-hidden rounded-[1.25rem] border border-primary/15 bg-[radial-gradient(circle_at_50%_42%,rgba(0,240,255,0.07),transparent_58%)] p-3 sm:min-h-[15rem] sm:rounded-[1.5rem] sm:p-5">
+                <span className="absolute left-3 top-3 font-mono text-[7px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/45">
+                  Opponent
+                </span>
+                <span className="absolute right-3 top-3 inline-flex items-center gap-1 text-[8px] font-medium text-secondary">
+                  <Check className="size-3" />
+                  Ready
+                </span>
+                <Avatar
+                  name={match.opponentName}
+                  stance={match.opponentStance}
+                    ready
+                />
+              </div>
             ) : (
-              <div className="flex min-w-0 flex-col items-center gap-2.5 sm:gap-3">
-                <div className="relative grid size-24 place-items-center sm:size-36">
+              <div
+                className={cn(
+                  "relative flex min-h-[13.5rem] min-w-0 flex-col items-center justify-center overflow-hidden rounded-[1.25rem] border border-dashed p-3 transition-colors sm:min-h-[15rem] sm:rounded-[1.5rem] sm:p-5",
+                  isSearching
+                    ? "border-primary/25 bg-primary/[0.025]"
+                    : "border-white/[0.09] bg-white/[0.012]",
+                )}
+              >
+                <span className="absolute left-3 top-3 font-mono text-[7px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/45">
+                  Opponent seat
+                </span>
+                <div className="relative grid size-20 place-items-center sm:size-28">
                   {isSearching ? (
                     <SearchScanner />
                   ) : (
                     <>
-                      <span className="absolute inset-0 rounded-full border border-dashed border-white/[0.14] bg-white/[0.018]" />
-                      <span className="absolute inset-3 rounded-full border border-white/[0.045]" />
-                      <UsersRound className="relative size-8 text-muted-foreground/50 sm:size-10" />
+                      <span className="absolute inset-0 rounded-full border border-dashed border-white/[0.12]" />
+                      <span className="absolute inset-3 rounded-full border border-white/[0.04]" />
+                      <UsersRound className="relative size-7 text-muted-foreground/45 sm:size-9" />
                     </>
                   )}
                 </div>
-                <div className="min-w-0 text-center">
-                  <p className="font-mono text-[8px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/50">
-                    Opponent
-                  </p>
+                <div className="mt-2 min-w-0 text-center">
                   {isSearching ? (
                     <SearchingLabel />
                   ) : (
-                    <p className="mt-1 text-xs font-semibold text-muted-foreground sm:text-sm">
+                    <p className="text-[11px] font-semibold text-muted-foreground sm:text-xs">
                       Waiting for match
                     </p>
                   )}
-                  <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.13em] text-accent sm:text-[10px]">
+                  <p className="mt-1 text-[8px] font-semibold uppercase tracking-[0.13em] text-accent sm:text-[9px]">
                     {setup.stance === "support" ? "Against" : "Support"}
                   </p>
                 </div>
@@ -273,7 +298,7 @@ export function MatchStep({
             )}
           </div>
 
-          <div className="relative mt-4 flex items-center justify-center gap-2 text-center text-[9px] text-muted-foreground/65 sm:mt-5 sm:text-[10px]">
+          <div className="mt-3 flex items-center justify-center gap-2 rounded-xl bg-white/[0.018] px-3 py-2.5 text-center text-[9px] text-muted-foreground/65 sm:text-[10px]">
             <span
               className={cn(
                 "size-1.5 rounded-full",
@@ -285,19 +310,19 @@ export function MatchStep({
               )}
             />
             {match
-              ? "Both debaters are ready"
+              ? "Both debaters are ready to enter"
               : isSearching
                 ? "Your place in the queue is secured"
-                : "The other seat will defend the opposite position"}
+                : "The open seat will defend the opposite position"}
           </div>
         </div>
 
-        <div className="mx-auto mt-4 w-full max-w-xl sm:mt-5">
+        <footer className="border-t border-white/[0.07] bg-black/15 px-4 py-4 sm:px-7">
           {match ? (
             <Button
               size="lg"
               onClick={() => onMatched(match)}
-              className="h-12 w-full rounded-full border-primary/50 bg-gradient-to-r from-primary to-secondary font-semibold text-primary-foreground shadow-[0_0_30px_rgba(0,240,255,0.2)] transition-all duration-300 hover:brightness-110 hover:shadow-[0_0_40px_rgba(0,240,255,0.34)]"
+              className="h-12 w-full rounded-full border-primary/50 bg-gradient-to-r from-primary to-secondary font-semibold text-primary-foreground shadow-[0_0_28px_rgba(0,240,255,0.18)] transition-all duration-300 hover:brightness-110 hover:shadow-[0_0_38px_rgba(0,240,255,0.3)]"
             >
               <Zap className="mr-1 size-4" />
               Enter live room
@@ -319,7 +344,7 @@ export function MatchStep({
                 size="lg"
                 onClick={() => matchmaking.mutate()}
                 disabled={inviteCreation.isPending}
-                className="h-12 rounded-full border-primary/50 bg-gradient-to-r from-primary to-secondary px-7 font-semibold text-primary-foreground shadow-[0_0_26px_rgba(0,240,255,0.18)] transition-all duration-300 hover:brightness-110 hover:shadow-[0_0_34px_rgba(0,240,255,0.3)]"
+                className="h-12 rounded-full border-primary/50 bg-gradient-to-r from-primary to-secondary px-7 font-semibold text-primary-foreground shadow-[0_0_24px_rgba(0,240,255,0.16)] transition-all duration-300 hover:brightness-110 hover:shadow-[0_0_34px_rgba(0,240,255,0.28)]"
               >
                 <Swords className="mr-1 size-4" />
                 {setup.inviteCode ? "Join private match" : "Find a match"}
@@ -368,16 +393,7 @@ export function MatchStep({
               </button>
             </div>
           ) : null}
-
-          <button
-            type="button"
-            onClick={leaveMatchmaking}
-            className="mx-auto mt-3 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-white/[0.035] hover:text-foreground"
-          >
-            <ArrowLeft className="size-3" />
-            Back to signal check
-          </button>
-        </div>
+        </footer>
       </div>
     </section>
   );
@@ -400,12 +416,10 @@ function SearchScanner() {
 function Avatar({
   name,
   stance,
-  label,
   ready,
 }: {
   name: string;
   stance: "support" | "challenge";
-  label: string;
   ready: boolean;
 }) {
   return (
@@ -421,7 +435,7 @@ function Avatar({
         />
         <div
           className={cn(
-            "relative grid size-24 place-items-center rounded-full border font-display text-3xl font-bold shadow-[0_18px_55px_rgba(0,0,0,0.3)] sm:size-36 sm:text-4xl",
+            "relative grid size-20 place-items-center rounded-full border font-display text-2xl font-bold shadow-[0_16px_45px_rgba(0,0,0,0.3)] sm:size-28 sm:text-3xl",
             stance === "support"
               ? "border-secondary/35 bg-[radial-gradient(circle_at_35%_30%,rgba(56,232,198,0.25),rgba(56,232,198,0.07)_55%,rgba(0,0,0,0.2))] text-secondary"
               : "border-accent/35 bg-[radial-gradient(circle_at_35%_30%,rgba(255,215,0,0.22),rgba(255,215,0,0.06)_55%,rgba(0,0,0,0.2))] text-accent",
@@ -430,16 +444,13 @@ function Avatar({
           {name.slice(0, 1).toUpperCase()}
         </div>
         {ready ? (
-          <span className="absolute bottom-1 right-1 grid size-5 place-items-center rounded-full border-2 border-background bg-secondary sm:bottom-2 sm:right-2 sm:size-6">
+          <span className="absolute bottom-0.5 right-0.5 grid size-5 place-items-center rounded-full border-2 border-background bg-secondary sm:bottom-1 sm:right-1 sm:size-6">
             <Check className="size-3 text-secondary-foreground" strokeWidth={3} />
           </span>
         ) : null}
       </div>
       <div className="min-w-0 text-center">
-        <p className="font-mono text-[8px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/60 sm:text-[9px]">
-          {label}
-        </p>
-        <p className="mt-1 max-w-28 truncate text-xs font-semibold sm:max-w-40 sm:text-base">
+        <p className="mt-1 max-w-24 truncate text-xs font-semibold sm:max-w-32 sm:text-sm">
           {name}
         </p>
         <p

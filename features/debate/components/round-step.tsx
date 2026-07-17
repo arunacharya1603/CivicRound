@@ -153,7 +153,7 @@ export function RoundStep({
       </div>
 
       <div className="mt-2 shrink-0 rounded-[1.25rem] border border-white/[0.07] bg-[#0b0d12]/90 p-2.5 shadow-[0_-16px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl sm:mt-3 sm:p-3 lg:grid lg:grid-cols-[minmax(0,1fr)_15.5rem_10rem_17rem] lg:items-center lg:gap-3">
-        <div className="min-w-0 rounded-xl bg-white/[0.025] px-3 py-2 sm:px-4 lg:bg-transparent lg:py-1">
+        <div className="hidden min-w-0 rounded-xl bg-white/[0.025] px-3 py-2 sm:block sm:px-4 lg:bg-transparent lg:py-1">
           <p className="font-mono text-[8px] font-semibold uppercase tracking-[0.18em] text-primary sm:text-[9px]">
             Selected motion
           </p>
@@ -162,9 +162,9 @@ export function RoundStep({
           </p>
         </div>
 
-        <div className="mt-2 grid grid-cols-2 gap-2 lg:mt-0 lg:contents">
+        <div className="grid grid-cols-1 gap-2 sm:mt-2 sm:grid-cols-2 lg:mt-0 lg:contents">
           <div
-            className="grid grid-cols-2 gap-1 rounded-xl border border-white/[0.05] bg-white/[0.03] p-1"
+            className="grid grid-cols-2 gap-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] p-1.5 sm:gap-1 sm:p-1"
             aria-label="Choose a stance"
           >
             {(
@@ -179,7 +179,7 @@ export function RoundStep({
                 aria-pressed={stance === value}
                 onClick={() => setStance(value)}
                 className={cn(
-                  "flex h-9 items-center justify-center gap-1 rounded-lg text-[11px] font-semibold transition-all duration-200 sm:h-10 sm:text-xs",
+                  "flex h-10 items-center justify-center gap-1.5 rounded-lg text-xs font-semibold transition-all duration-200 sm:gap-1",
                   stance === value
                     ? value === "support"
                       ? "bg-secondary/15 text-secondary shadow-[inset_0_0_0_1px_rgba(56,232,198,0.12)]"
@@ -194,7 +194,7 @@ export function RoundStep({
           </div>
 
           <div
-            className="grid grid-cols-2 gap-1 rounded-xl border border-white/[0.05] bg-white/[0.03] p-1"
+            className="grid grid-cols-2 gap-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] p-1.5 sm:gap-1 sm:p-1"
             aria-label="Choose debate duration"
           >
             {([60, 120] as const).map((seconds) => (
@@ -204,7 +204,7 @@ export function RoundStep({
                 aria-pressed={duration === seconds}
                 onClick={() => setDuration(seconds)}
                 className={cn(
-                  "flex h-9 items-center justify-center gap-1 rounded-lg font-mono text-[11px] font-semibold transition-all duration-200 sm:h-10 sm:text-xs",
+                  "flex h-10 items-center justify-center gap-1.5 rounded-lg font-mono text-xs font-semibold transition-all duration-200 sm:gap-1",
                   duration === seconds
                     ? "bg-primary/15 text-primary shadow-[inset_0_0_0_1px_rgba(0,240,255,0.12)]"
                     : "text-muted-foreground hover:text-foreground",
