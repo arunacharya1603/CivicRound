@@ -21,17 +21,19 @@ test("server-renders the CivicRound entry experience", async () => {
 
   const html = await response.text();
   assert.match(html, /<title>CivicRound<\/title>/i);
-  assert.match(html, /Who are you today\?/i);
-  assert.match(html, /Enter the arena/i);
-  assert.match(html, /I am 18 or older/i);
+  assert.match(html, /Preparing your session/i);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Your site is taking shape/i);
 });
 
 test("keeps routes thin and product code feature-based", async () => {
-  const [page, app, room, packageJson] = await Promise.all([
+  const [page, app, room, guestAuth, packageJson] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../features/debate/components/civic-round-app.tsx", import.meta.url), "utf8"),
     readFile(new URL("../features/debate/components/debate-room.tsx", import.meta.url), "utf8"),
+    readFile(
+      new URL("../features/auth/services/guest-auth.service.ts", import.meta.url),
+      "utf8",
+    ),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
 
@@ -42,6 +44,9 @@ test("keeps routes thin and product code feature-based", async () => {
   assert.match(app, /MatchStep/);
   assert.match(app, /DebateRoom/);
   assert.match(room, /useDebateTimer/);
+  assert.match(app, /readGuestIdentity/);
+  assert.match(guestAuth, /sessionStorage/);
+  assert.doesNotMatch(guestAuth, /localStorage\.setItem/);
   assert.match(packageJson, /"@tanstack\/react-query"/);
   assert.match(packageJson, /"@livekit\/components-react"/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 
 import { ArenaShell } from "@/components/layout/arena-shell";
+import { readGuestIdentity } from "@/features/auth/services/guest-auth.service";
 import { DeviceStep } from "@/features/device/components/device-step";
 import { DebateRoom } from "@/features/debate/components/debate-room";
 import { ResultsStep } from "@/features/debate/components/results-step";
@@ -31,10 +32,27 @@ const LiveKitDebateRoom = dynamic(
 export function CivicRoundApp() {
   const [stage, setStage] = useState<AppStage>("profile");
   const [profile, setProfile] = useState<GuestProfile | null>(null);
+  const [identityReady, setIdentityReady] = useState(false);
   const [setup, setSetup] = useState<DebateSetup | null>(null);
   const [session, setSession] = useState<DebateSession | null>(null);
   const [inviteSetup] = useState<DebateSetup | null>(() => readInviteSetup());
   const media = useMediaDevices();
+
+  useEffect(() => {
+    const storedProfile = readGuestIdentity();
+
+    if (storedProfile) {
+      setProfile(storedProfile);
+      if (inviteSetup) {
+        setSetup(inviteSetup);
+        setStage("device");
+      } else {
+        setStage("round");
+      }
+    }
+
+    setIdentityReady(true);
+  }, [inviteSetup]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -45,10 +63,19 @@ export function CivicRoundApp() {
     [setup],
   );
 
+  if (!identityReady) {
+    return (
+      <ArenaShell stage="profile" profile={null}>
+        <SessionBootstrap />
+      </ArenaShell>
+    );
+  }
+
   return (
     <ArenaShell stage={stage} profile={profile}>
       {stage === "profile" ? (
         <ProfileStep
+          profile={profile}
           onComplete={(nextProfile) => {
             setProfile(nextProfile);
             if (inviteSetup) {
@@ -119,7 +146,8 @@ export function CivicRoundApp() {
           session={session}
           topic={topic}
           onRematch={() => {
-            setSession(null);            setSetup({ ...setup, inviteCode: undefined });
+            setSession(null);
+            setSetup({ ...setup, inviteCode: undefined });
             setStage("match");
           }}
           onNewRound={() => {
@@ -130,5 +158,24 @@ export function CivicRoundApp() {
         />
       ) : null}
     </ArenaShell>
+  );
+}
+
+function SessionBootstrap() {
+  return (
+    <section
+      className="flex min-h-[calc(100svh-3rem)] items-center justify-center px-4 lg:min-h-[calc(100svh-3.5rem)]"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="text-center">
+        <span className="relative mx-auto grid size-11 place-items-center rounded-full border border-primary/15 bg-primary/[0.05]">
+          <span className="live-dot size-2 rounded-full bg-primary" />
+        </span>
+        <p className="mt-3 font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          Preparing your session
+        </p>
+      </div>
+    </section>
   );
 }

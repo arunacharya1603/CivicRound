@@ -4,8 +4,68 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 
 const GUEST_STORAGE_KEY = "civicround.guest";
 
+function clearLegacyPersistentGuest() {
+  try {
+    window.localStorage.removeItem(GUEST_STORAGE_KEY);
+  } catch {
+    // Storage can be unavailable in hardened privacy modes.
+  }
+}
+
+function isGuestProfile(value: unknown): value is GuestProfile {
+  if (!value || typeof value !== "object") return false;
+
+  const profile = value as Partial<GuestProfile>;
+  const name = profile.displayName?.trim();
+
+  return (
+    typeof profile.id === "string" &&
+    profile.id.length > 0 &&
+    typeof name === "string" &&
+    name.length >= 2 &&
+    name.length <= 32 &&
+    profile.isAnonymous === true
+  );
+}
+
+export function readGuestIdentity(): GuestProfile | null {
+  if (typeof window === "undefined") return null;
+
+  clearLegacyPersistentGuest();
+
+  try {
+    const stored = window.sessionStorage.getItem(GUEST_STORAGE_KEY);
+    if (!stored) return null;
+
+    const profile: unknown = JSON.parse(stored);
+    if (!isGuestProfile(profile)) {
+      window.sessionStorage.removeItem(GUEST_STORAGE_KEY);
+      return null;
+    }
+
+    return {
+      ...profile,
+      displayName: profile.displayName.trim(),
+    };
+  } catch {
+    try {
+      window.sessionStorage.removeItem(GUEST_STORAGE_KEY);
+    } catch {
+      // Ignore storage cleanup failures.
+    }
+    return null;
+  }
+}
+
 function saveGuest(guest: GuestProfile) {
-  window.localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(guest));
+  clearLegacyPersistentGuest();
+
+  try {
+    window.sessionStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(guest));
+  } catch {
+    // React state still keeps the identity for the current page lifecycle.
+  }
+
   return guest;
 }
 

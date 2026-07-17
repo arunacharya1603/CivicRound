@@ -5,6 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import {
   ArrowRight,
   Fingerprint,
+  LockKeyhole,
   ShieldCheck,
   VideoOff,
   X,
@@ -24,6 +25,25 @@ const SAFETY_POINTS = [
 ] as const;
 
 export function ProfileStep({
+  profile,
+  onComplete,
+}: {
+  profile: GuestProfile | null;
+  onComplete: (profile: GuestProfile) => void;
+}) {
+  if (profile) {
+    return (
+      <SessionProfileStep
+        profile={profile}
+        onContinue={() => onComplete(profile)}
+      />
+    );
+  }
+
+  return <NewProfileStep onComplete={onComplete} />;
+}
+
+function NewProfileStep({
   onComplete,
 }: {
   onComplete: (profile: GuestProfile) => void;
@@ -171,6 +191,70 @@ export function ProfileStep({
             </span>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+function SessionProfileStep({
+  profile,
+  onContinue,
+}: {
+  profile: GuestProfile;
+  onContinue: () => void;
+}) {
+  return (
+    <section className="screen-enter relative isolate flex min-h-[calc(100svh-3rem)] items-center justify-center overflow-hidden px-4 py-4 text-center sm:px-6 sm:py-6 lg:min-h-[calc(100svh-3.5rem)] lg:py-8">
+      <div
+        className="pointer-events-none absolute left-1/2 top-[44%] -z-10 size-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/[0.025] blur-3xl sm:size-[44rem]"
+        aria-hidden="true"
+      />
+
+      <div className="w-full max-w-[26rem]">
+        <div className="mx-auto grid size-20 place-items-center rounded-full border border-secondary/20 bg-[radial-gradient(circle_at_35%_30%,rgba(56,232,198,0.2),rgba(56,232,198,0.05)_58%,rgba(0,0,0,0.2))] font-display text-3xl font-bold text-secondary shadow-[0_20px_60px_rgba(0,0,0,0.32)] sm:size-24 sm:text-4xl">
+          {profile.displayName.slice(0, 1).toUpperCase()}
+        </div>
+
+        <div className="mx-auto mt-5 inline-flex items-center gap-2 rounded-full border border-white/[0.07] bg-white/[0.025] px-3 py-1.5 font-mono text-[8px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:text-[9px]">
+          <LockKeyhole className="size-3 text-primary" />
+          Session identity
+        </div>
+
+        <h1 className="mt-4 font-display text-3xl font-bold tracking-[-0.04em] sm:text-4xl">
+          Identity locked in
+        </h1>
+        <p className="mx-auto mt-2 max-w-sm text-sm leading-5 text-muted-foreground">
+          Your debate name stays fixed until this browser session ends.
+        </p>
+
+        <div className="mt-6 rounded-[1.4rem] border border-white/[0.08] bg-white/[0.025] p-4 text-left shadow-[0_20px_65px_rgba(0,0,0,0.24)]">
+          <p className="font-mono text-[8px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/55">
+            Debate name
+          </p>
+          <div className="mt-2 flex items-center justify-between gap-4">
+            <p className="min-w-0 truncate text-lg font-semibold text-foreground">
+              {profile.displayName}
+            </p>
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-secondary/[0.09] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-secondary">
+              <ShieldCheck className="size-3" />
+              Active
+            </span>
+          </div>
+        </div>
+
+        <Button
+          type="button"
+          size="lg"
+          onClick={onContinue}
+          className="mt-4 h-12 w-full rounded-full border-primary/60 bg-gradient-to-r from-primary to-secondary font-semibold text-primary-foreground shadow-[0_0_28px_rgba(0,240,255,0.18)] transition-all duration-300 hover:brightness-110 hover:shadow-[0_0_36px_rgba(0,240,255,0.3)] sm:h-13"
+        >
+          Continue as {profile.displayName}
+          <ArrowRight className="ml-1 size-4" />
+        </Button>
+
+        <p className="mt-4 text-[10px] leading-4 text-muted-foreground/60">
+          Refreshing or moving between setup steps will not ask for another name.
+        </p>
       </div>
     </section>
   );
