@@ -1,24 +1,31 @@
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────────────────────
+   CivicRound — Obsidian Space Theme
+   ───────────────────────────────────────────────────────── */
+
 :root {
-  --background: #090a0b;
-  --foreground: #f5f2eb;
-  --card: #111315;
-  --card-foreground: #f5f2eb;
-  --popover: #111315;
-  --popover-foreground: #f5f2eb;
-  --primary: #ff552e;
-  --primary-foreground: #140703;
-  --secondary: #41d4bc;
+  --background: #06070a;
+  --foreground: #e8eaed;
+  --card: rgba(14, 16, 22, 0.65);
+  --card-foreground: #e8eaed;
+  --popover: rgba(14, 16, 22, 0.85);
+  --popover-foreground: #e8eaed;
+  --primary: #00f0ff;
+  --primary-foreground: #001a1d;
+  --secondary: #38e8c6;
   --secondary-foreground: #031310;
-  --muted: #181b1d;
-  --muted-foreground: #989d9e;
-  --accent: #f2c14d;
+  --muted: rgba(255, 255, 255, 0.06);
+  --muted-foreground: #7a8a95;
+  --accent: #ffd700;
   --accent-foreground: #171002;
-  --destructive: #ff5964;
-  --border: #2a2e31;
-  --input: #3a3f42;
-  --ring: #ff552e;
+  --destructive: #ff3b30;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.06);
+  --ring: #00f0ff;
+  --glow-primary: rgba(0, 240, 255, 0.25);
+  --glow-secondary: rgba(56, 232, 198, 0.2);
+  --glow-accent: rgba(255, 215, 0, 0.2);
 }
 
 @theme inline {
@@ -41,7 +48,7 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --font-sans: var(--font-body);
-  --font-display: "Iowan Old Style", Baskerville, "Times New Roman", serif;
+  --font-display: var(--font-display, "Space Grotesk"), "Inter", system-ui, sans-serif;
   --font-mono: var(--font-mono);
 }
 
@@ -49,17 +56,70 @@
   border-color: var(--border);
 }
 
+/* ─── Body: Obsidian Space Canvas ──────────────────────── */
+
 html {
-  background: var(--background);
+  background: #020304;
 }
 
 body {
-  min-height: 100vh;
-  background: var(--background);
+  min-height: 100dvh;
   color: var(--foreground);
-  font-family: var(--font-body), Arial, Helvetica, sans-serif;
-  letter-spacing: 0;
+  font-family: var(--font-body), "Inter", system-ui, sans-serif;
+  letter-spacing: -0.01em;
+  background:
+    /* subtle grid overlay */
+    linear-gradient(rgba(0, 240, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.015) 1px, transparent 1px),
+    /* radial nebula glow — top-center cyan */
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0, 180, 220, 0.08) 0%, transparent 65%),
+    /* bottom-left teal bloom */
+    radial-gradient(ellipse 60% 55% at 10% 100%, rgba(56, 232, 198, 0.04) 0%, transparent 55%),
+    /* deep base */
+    var(--background);
+  background-size:
+    48px 48px,
+    48px 48px,
+    100% 100%,
+    100% 100%,
+    100% 100%;
+  background-attachment: fixed;
 }
+
+/* ─── Custom Scrollbar ─────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 100px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 240, 255, 0.35);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+/* ─── Selection ────────────────────────────────────────── */
+
+::selection {
+  background: rgba(0, 240, 255, 0.3);
+  color: #ffffff;
+}
+
+/* ─── Forms ────────────────────────────────────────────── */
 
 button,
 input,
@@ -68,18 +128,86 @@ select {
   font: inherit;
 }
 
-::selection {
-  background: #ff552e;
-  color: #140703;
+/* ─── Glassmorphism Panel ──────────────────────────────── */
+
+.glass-panel {
+  background: rgba(12, 14, 20, 0.6);
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.04);
 }
+
+.glass-panel-light {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ─── Glow Effects ─────────────────────────────────────── */
+
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.15), 0 0 60px rgba(0, 240, 255, 0.05);
+}
+
+.glow-cyan-strong {
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.3), 0 0 40px rgba(0, 240, 255, 0.1);
+}
+
+.glow-gold {
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.15), 0 0 60px rgba(255, 215, 0, 0.05);
+}
+
+.glow-teal {
+  box-shadow: 0 0 20px rgba(56, 232, 198, 0.15), 0 0 60px rgba(56, 232, 198, 0.05);
+}
+
+/* ─── Border Glows ─────────────────────────────────────── */
+
+.border-glow-cyan {
+  border-color: rgba(0, 240, 255, 0.3);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.08);
+}
+
+.border-glow-teal {
+  border-color: rgba(56, 232, 198, 0.3);
+  box-shadow: 0 0 12px rgba(56, 232, 198, 0.08);
+}
+
+.border-glow-gold {
+  border-color: rgba(255, 215, 0, 0.3);
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.08);
+}
+
+/* ─── Typography ───────────────────────────────────────── */
 
 .font-display {
-  font-family: "Iowan Old Style", Baskerville, "Times New Roman", serif;
+  font-family: var(--font-display, "Space Grotesk"), "Inter", system-ui, sans-serif;
+  letter-spacing: -0.02em;
 }
 
-.arena-grid {
-  background: var(--background);
+.text-balance {
+  text-wrap: balance;
 }
+
+/* ─── Surface Lift ─────────────────────────────────────── */
+
+.surface-lift {
+  box-shadow: 0 18px 60px rgb(0 0 0 / 0.35);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ─── Broadcast Rule (top accent stripe) ───────────────── */
 
 .broadcast-rule {
   position: relative;
@@ -93,15 +221,16 @@ select {
   width: 56px;
   content: "";
   background: var(--primary);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
 }
 
-.text-balance {
-  text-wrap: balance;
+/* ─── Arena Grid ───────────────────────────────────────── */
+
+.arena-grid {
+  background: var(--background);
 }
 
-.surface-lift {
-  box-shadow: 0 18px 60px rgb(0 0 0 / 0.22);
-}
+/* ─── Live Pulse Dot ───────────────────────────────────── */
 
 @keyframes live-pulse {
   0%,
@@ -118,6 +247,8 @@ select {
 .live-dot {
   animation: live-pulse 1.4s ease-in-out infinite;
 }
+
+/* ─── Opponent Search Animations ───────────────────────── */
 
 @keyframes opponent-search-orbit {
   to {
@@ -159,6 +290,147 @@ select {
 .opponent-search-copy {
   animation: opponent-search-copy 220ms ease-out both;
 }
+
+/* Matchmaking scanner */
+@keyframes match-scanner-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes match-scanner-turn-reverse {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes match-scanner-sweep {
+  0% {
+    transform: rotate(0deg);
+    opacity: 0.35;
+  }
+  45% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: rotate(360deg);
+    opacity: 0.35;
+  }
+}
+
+@keyframes match-scanner-core {
+  0%,
+  100% {
+    transform: scale(0.92);
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.16);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 28px rgba(0, 240, 255, 0.35);
+  }
+}
+
+.match-scanner {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  isolation: isolate;
+}
+
+.match-scanner::before,
+.match-scanner::after {
+  position: absolute;
+  content: "";
+  border-radius: 999px;
+  background: conic-gradient(
+    from 15deg,
+    transparent 0 12%,
+    rgba(0, 240, 255, 0.75) 12% 23%,
+    transparent 23% 50%,
+    rgba(56, 232, 198, 0.35) 50% 62%,
+    transparent 62% 100%
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 0);
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 0);
+}
+
+.match-scanner::before {
+  inset: 4%;
+  animation: match-scanner-turn 3.8s linear infinite;
+}
+
+.match-scanner::after {
+  inset: 16%;
+  opacity: 0.55;
+  animation: match-scanner-turn-reverse 2.6s linear infinite;
+}
+
+.match-scanner-grid {
+  position: absolute;
+  inset: 26%;
+  border: 1px solid rgba(0, 240, 255, 0.14);
+  border-radius: 999px;
+  box-shadow:
+    0 0 0 10px rgba(0, 240, 255, 0.018),
+    0 0 0 22px rgba(0, 240, 255, 0.012);
+}
+
+.match-scanner-sweep {
+  position: absolute;
+  inset: 24%;
+  overflow: hidden;
+  border-radius: 999px;
+  background: conic-gradient(
+    from 0deg,
+    rgba(0, 240, 255, 0.2),
+    transparent 24%,
+    transparent 100%
+  );
+  animation: match-scanner-sweep 2.2s linear infinite;
+}
+
+.match-scanner-core {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  width: 34%;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  border-radius: 999px;
+  color: var(--primary);
+  background: rgba(0, 240, 255, 0.08);
+  animation: match-scanner-core 1.8s ease-in-out infinite;
+}
+
+.match-scanner-dot {
+  position: absolute;
+  z-index: 3;
+  width: 7px;
+  height: 7px;
+  border: 2px solid var(--background);
+  border-radius: 999px;
+  background: var(--secondary);
+  box-shadow: 0 0 12px rgba(56, 232, 198, 0.8);
+}
+
+.match-scanner-dot-one {
+  left: 7%;
+  top: 48%;
+}
+
+.match-scanner-dot-two {
+  right: 12%;
+  top: 22%;
+  width: 5px;
+  height: 5px;
+  opacity: 0.7;
+}
+
+/* ─── Screen Entrance ──────────────────────────────────── */
+
 @keyframes scan-in {
   from {
     opacity: 0;
@@ -171,15 +443,61 @@ select {
 }
 
 .screen-enter {
-  animation: scan-in 220ms ease-out both;
+  animation: scan-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* ─── Neon Ring Pulse ──────────────────────────────────── */
+
+@keyframes neon-ring-pulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.2), 0 0 24px rgba(0, 240, 255, 0.08);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(0, 240, 255, 0.35), 0 0 48px rgba(0, 240, 255, 0.12);
+  }
+}
+
+.neon-ring {
+  animation: neon-ring-pulse 2s ease-in-out infinite;
+  border: 1px solid rgba(0, 240, 255, 0.25);
+}
+
+/* ─── Shimmer Loading ──────────────────────────────────── */
+
+@keyframes shimmer-slide {
+  from {
+    background-position: -200% center;
+  }
+  to {
+    background-position: 200% center;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(
+    110deg,
+    transparent 33%,
+    rgba(0, 240, 255, 0.05) 50%,
+    transparent 67%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-slide 2.5s ease-in-out infinite;
+}
+
+/* ─── Reduced Motion ───────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
   .live-dot,
   .screen-enter,
   .opponent-search-orbit,
   .opponent-search-radar,
-  .opponent-search-copy {
+  .opponent-search-copy,
+  .neon-ring,
+  .match-scanner::before,
+  .match-scanner::after,
+  .match-scanner-sweep,
+  .match-scanner-core,
+  .shimmer {
     animation: none;
   }
 }

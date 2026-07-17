@@ -62,7 +62,8 @@ export function DebateRoom({
     }
   }, [media.stream]);
 
-  const time = String(timer.secondsLeft).padStart(2, "0");
+  const minutesStr = String(Math.floor(timer.secondsLeft / 60)).padStart(2, "0");
+  const secondsStr = String(timer.secondsLeft % 60).padStart(2, "0");
 
   return (
     <section className="screen-enter mx-auto max-w-[1440px] px-3 py-4 sm:px-6 lg:px-8">
@@ -74,7 +75,7 @@ export function DebateRoom({
         <div className="flex items-center justify-between gap-4 sm:justify-end">
           <div className="text-right">
             <p className="font-mono text-[9px] uppercase text-accent">{timer.running ? timer.currentPhase.label : "Round ready"}</p>
-            <p className="font-mono text-3xl font-semibold tabular-nums">00:{time}</p>
+            <p className="font-mono text-3xl font-semibold tabular-nums">{minutesStr}:{secondsStr}</p>
           </div>
           <Button variant="ghost" size="sm" onClick={() => setReportOpen(true)}>
             <Flag />
@@ -198,12 +199,12 @@ function VideoPlate({
   return (
     <div
       className={cn(
-        "relative aspect-video overflow-hidden rounded border-2 bg-black",
+        "relative aspect-video overflow-hidden rounded border-2 bg-black transition-all duration-300",
         active
           ? accent === "primary"
-            ? "border-primary"
-            : "border-accent"
-          : "border-border",
+            ? "border-primary shadow-[0_0_15px_rgba(255,85,46,0.35)] ring-1 ring-primary/50"
+            : "border-accent shadow-[0_0_15px_rgba(242,193,77,0.35)] ring-1 ring-accent/50"
+          : "border-border opacity-70",
       )}
     >
       {children}

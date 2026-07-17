@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
 import "@livekit/components-styles";
 import { Providers } from "./providers";
 import "./globals.css";
@@ -12,6 +12,12 @@ const bodyFont = Geist({
 const monoFont = Geist_Mono({
   variable: "--font-mono",
   subsets: ["latin"],
+});
+
+const displayFont = Space_Grotesk({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -35,7 +41,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${bodyFont.variable} ${monoFont.variable} antialiased`}>
+      <body className={`${bodyFont.variable} ${monoFont.variable} ${displayFont.variable} antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

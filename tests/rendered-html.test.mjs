@@ -21,9 +21,9 @@ test("server-renders the CivicRound entry experience", async () => {
 
   const html = await response.text();
   assert.match(html, /<title>CivicRound<\/title>/i);
-  assert.match(html, /Enter the round as yourself./i);
-  assert.match(html, /Continue to motion/i);
-  assert.match(html, /18\+/i);
+  assert.match(html, /Who are you today\?/i);
+  assert.match(html, /Enter the arena/i);
+  assert.match(html, /I am 18 or older/i);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Your site is taking shape/i);
 });
 

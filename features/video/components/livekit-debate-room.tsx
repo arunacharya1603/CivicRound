@@ -112,10 +112,13 @@ export function LiveKitDebateRoom({
 
   if (token.isPending) {
     return (
-      <div className="grid min-h-[calc(100vh-64px)] place-items-center">
+      <div className="grid min-h-[calc(100dvh-64px)] place-items-center">
         <div className="text-center">
-          <LoaderCircle className="mx-auto size-8 animate-spin text-primary" />
-          <p className="mt-4 font-mono text-[10px] uppercase text-muted-foreground">
+          <div className="relative mx-auto size-16">
+            <div className="absolute inset-0 rounded-full border border-primary/20 animate-ping" />
+            <LoaderCircle className="absolute inset-0 m-auto size-8 animate-spin text-primary drop-shadow-[0_0_8px_rgba(0,240,255,0.4)]" />
+          </div>
+          <p className="mt-4 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
             Opening authorized room
           </p>
         </div>
@@ -126,14 +129,14 @@ export function LiveKitDebateRoom({
   if (token.error || !token.data) {
     return (
       <div className="mx-auto max-w-xl px-4 py-20 text-center">
-        <h1 className="font-display text-3xl font-semibold">
+        <h1 className="font-display text-3xl font-bold">
           The live room did not open.
         </h1>
         <p className="mt-3 text-muted-foreground">
           {token.error?.message ??
             "Return to matchmaking and request a fresh room."}
         </p>
-        <Button className="mt-6" onClick={finishOnce}>
+        <Button className="mt-6 rounded-xl" onClick={finishOnce}>
           Return
         </Button>
       </div>
@@ -148,7 +151,7 @@ export function LiveKitDebateRoom({
       video
       audio
       onDisconnected={finishOnce}
-      className="min-h-[calc(100vh-64px)]"
+      className="min-h-[calc(100dvh-64px)]"
     >
       <LiveRoomSurface
         session={session}
@@ -245,11 +248,12 @@ function LiveRoomSurface({
       : timer.running
         ? timer.currentPhase?.label
         : "Closing round";
-  const seconds = String(
+  const totalSeconds =
     effectiveState?.status === "ready"
       ? phases[0]?.duration ?? 0
-      : timer.secondsLeft,
-  ).padStart(2, "0");
+      : timer.secondsLeft;
+  const minutesStr = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+  const secondsStr = String(totalSeconds % 60).padStart(2, "0");
 
   const handleLeave = async () => {
     if (completionRef.current) return;
@@ -265,13 +269,13 @@ function LiveRoomSurface({
   if (ready.error || roomState.error) {
     return (
       <div className="mx-auto max-w-xl px-4 py-20 text-center">
-        <h1 className="font-display text-3xl font-semibold">
+        <h1 className="font-display text-3xl font-bold">
           Room synchronization failed.
         </h1>
         <p className="mt-3 text-muted-foreground">
           {(ready.error ?? roomState.error)?.message}
         </p>
-        <Button className="mt-6" onClick={() => void handleLeave()}>
+        <Button className="mt-6 rounded-xl" onClick={() => void handleLeave()}>
           Return
         </Button>
       </div>
@@ -280,40 +284,45 @@ function LiveRoomSurface({
 
   return (
     <section className="mx-auto max-w-[1280px] px-3 py-4 sm:px-6 lg:px-8">
-      <div className="grid gap-3 border border-border bg-card p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-4">
+      {/* ─── Topic Header Bar ─── */}
+      <div className="glass-panel grid gap-3 rounded-2xl p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-4 relative overflow-hidden">
+        <div className="absolute left-0 top-0 h-[2px] w-full bg-gradient-to-r from-transparent via-primary to-transparent opacity-40" />
         <div className="min-w-0">
-          <p className="font-mono text-[9px] uppercase text-muted-foreground">
+          <p className="font-mono text-[9px] uppercase tracking-wider text-primary/70">
             {topic.category} / Authorized live room
           </p>
-          <h1 className="mt-1 truncate font-display text-lg font-semibold sm:text-2xl">
+          <h1 className="mt-1 truncate font-display text-lg font-bold sm:text-2xl">
             {topic.statement}
           </h1>
         </div>
         <div className="flex items-center justify-between gap-4 sm:justify-end">
           <div className="text-right">
-            <p className="font-mono text-[9px] uppercase text-accent">
+            <p className="font-mono text-[9px] uppercase tracking-wider text-accent">
               {ready.isPending ? "Registering presence" : statusLabel}
             </p>
-            <p className="font-mono text-3xl font-semibold tabular-nums">
-              00:{seconds}
+            <p className="font-mono text-3xl font-bold tabular-nums text-foreground drop-shadow-[0_0_8px_rgba(0,240,255,0.15)]">
+              {minutesStr}:{secondsStr}
             </p>
           </div>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setReportOpen(true)}
+            className="text-muted-foreground hover:text-destructive rounded-xl"
           >
-            <Flag />
+            <Flag className="size-4" />
             <span className="hidden sm:inline">Report</span>
           </Button>
         </div>
       </div>
 
+      {/* ─── Phase Progress Bar ─── */}
       <Progress
         value={timer.phaseProgress}
-        className="h-1 rounded-none bg-border [&>div]:bg-accent"
+        className="h-1 rounded-none bg-border/50 [&>div]:bg-gradient-to-r [&>div]:from-primary [&>div]:to-accent"
       />
 
+      {/* ─── Video Grid ─── */}
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         {tracks.slice(0, 2).map((trackRef) => {
           const isLocal =
@@ -326,25 +335,27 @@ function LiveRoomSurface({
             <div
               key={trackRef.participant.identity}
               className={cn(
-                "relative aspect-video overflow-hidden rounded-sm border bg-black",
+                "relative aspect-video overflow-hidden rounded-2xl border bg-black transition-all duration-500",
                 active
                   ? isLocal
-                    ? "border-primary"
-                    : "border-accent"
-                  : "border-border",
+                    ? "border-primary/40 shadow-[0_0_24px_rgba(0,240,255,0.2)] ring-1 ring-primary/30"
+                    : "border-accent/40 shadow-[0_0_24px_rgba(255,215,0,0.2)] ring-1 ring-accent/30"
+                  : "border-border/30 opacity-70",
               )}
             >
               <ParticipantTile trackRef={trackRef} className="h-full w-full" />
-              <div className="absolute left-3 top-3 flex items-center gap-2 bg-black/85 px-2 py-1 font-mono text-[9px] uppercase">
+              <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-black/70 backdrop-blur-sm px-3 py-1 font-mono text-[9px] uppercase tracking-wider">
                 <span
                   className={cn(
                     "size-1.5 rounded-full",
-                    active ? "live-dot bg-primary" : "bg-muted-foreground",
+                    active
+                      ? "live-dot bg-primary shadow-[0_0_6px_rgba(0,240,255,0.5)]"
+                      : "bg-muted-foreground",
                   )}
                 />
                 {active ? "Speaking now" : isLocal ? "You" : "Connected"}
               </div>
-              <div className="absolute bottom-3 left-3 bg-black/85 px-3 py-2 font-display text-sm font-semibold">
+              <div className="absolute bottom-3 left-3 rounded-xl bg-black/70 backdrop-blur-sm px-3 py-2 font-display text-sm font-bold">
                 {trackRef.participant.name || trackRef.participant.identity}
               </div>
             </div>
@@ -352,10 +363,10 @@ function LiveRoomSurface({
         })}
 
         {tracks.length < 2 ? (
-          <div className="grid aspect-video place-items-center rounded-sm border border-dashed border-border bg-black">
+          <div className="glass-panel grid aspect-video place-items-center rounded-2xl border border-dashed border-border/30">
             <div className="text-center">
-              <LoaderCircle className="mx-auto size-6 animate-spin text-primary" />
-              <p className="mt-3 font-mono text-[10px] uppercase text-muted-foreground">
+              <LoaderCircle className="mx-auto size-6 animate-spin text-primary drop-shadow-[0_0_6px_rgba(0,240,255,0.3)]" />
+              <p className="mt-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                 Waiting for opponent connection
               </p>
             </div>
@@ -363,10 +374,11 @@ function LiveRoomSurface({
         ) : null}
       </div>
 
+      {/* ─── Phase Indicators + Controls ─── */}
       <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
         <div
           className={cn(
-            "grid gap-px border border-border bg-border",
+            "grid gap-px rounded-xl overflow-hidden border border-border/30",
             phases.length === 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-4",
           )}
         >
@@ -374,10 +386,10 @@ function LiveRoomSurface({
             <div
               key={phase.id}
               className={cn(
-                "bg-card px-3 py-3 font-mono text-[9px] uppercase text-muted-foreground",
+                "bg-white/[0.02] px-3 py-3 font-mono text-[9px] uppercase tracking-wider text-muted-foreground transition-all duration-300",
                 index === timer.phaseIndex &&
                   timer.running &&
-                  "bg-primary text-primary-foreground",
+                  "bg-primary/15 text-primary shadow-[inset_0_0_12px_rgba(0,240,255,0.05)]",
                 index < timer.phaseIndex && "text-secondary",
               )}
             >
@@ -417,14 +429,20 @@ function LiveControls({
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } =
     useLocalParticipant();
 
+  const prevCanSpeakRef = useRef(canSpeak);
+
   useEffect(() => {
+    if (canSpeak && !prevCanSpeakRef.current && !isMicrophoneEnabled) {
+      void localParticipant.setMicrophoneEnabled(true);
+    }
     if (!canSpeak && isMicrophoneEnabled) {
       void localParticipant.setMicrophoneEnabled(false);
     }
+    prevCanSpeakRef.current = canSpeak;
   }, [canSpeak, isMicrophoneEnabled, localParticipant]);
 
   return (
-    <div className="flex items-center justify-center gap-2 rounded-sm border border-border bg-card p-2">
+    <div className="glass-panel flex items-center justify-center gap-2 rounded-full p-2">
       <Button
         size="icon"
         variant={isMicrophoneEnabled ? "ghost" : "destructive"}
@@ -439,6 +457,7 @@ function LiveControls({
               ? "Toggle microphone"
               : "Microphone locked outside your turn"
         }
+        className="rounded-full size-9"
       >
         {isMicrophoneEnabled ? <Mic /> : <MicOff />}
       </Button>
@@ -447,15 +466,17 @@ function LiveControls({
         variant={isCameraEnabled ? "ghost" : "destructive"}
         onClick={() => localParticipant.setCameraEnabled(!isCameraEnabled)}
         aria-label="Toggle camera"
+        className="rounded-full size-9"
       >
         {isCameraEnabled ? <Camera /> : <CameraOff />}
       </Button>
-      <div className="mx-1 h-6 w-px bg-border" />
+      <div className="mx-1 h-6 w-px bg-border/30" />
       <Button
         size="icon"
         variant="destructive"
         onClick={() => void onLeave()}
         aria-label="Leave room"
+        className="rounded-full size-9"
       >
         <LogOut />
       </Button>

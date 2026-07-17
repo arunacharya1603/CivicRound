@@ -32,6 +32,16 @@ export function useSynchronizedDebateTimer({
     return () => window.clearInterval(intervalId);
   }, [active, startedAt]);
 
+  const [serverOffset, setServerOffset] = useState(0);
+
+  useEffect(() => {
+    if (serverNow) {
+      const offset = new Date(serverNow).getTime() - Date.now();
+      const timer = setTimeout(() => setServerOffset(offset), 0);
+      return () => clearTimeout(timer);
+    }
+  }, [serverNow]);
+
   const snapshot = useMemo(() => {
     const totalDuration = getDebateDuration(phases);
     if (!startedAt) {
@@ -45,9 +55,6 @@ export function useSynchronizedDebateTimer({
       };
     }
 
-    const serverOffset = serverNow
-      ? new Date(serverNow).getTime() - clock
-      : 0;
     const elapsed = Math.max(
       0,
       Math.floor((clock + serverOffset - new Date(startedAt).getTime()) / 1000),
@@ -81,7 +88,7 @@ export function useSynchronizedDebateTimer({
         : 0,
       complete: boundedElapsed >= totalDuration,
     };
-  }, [clock, phases, serverNow, startedAt]);
+  }, [clock, phases, startedAt, serverOffset]);
 
   useEffect(() => {
     if (

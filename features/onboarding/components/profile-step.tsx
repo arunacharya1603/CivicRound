@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useMutation } from "@tanstack/react-query";
 import {
   ArrowRight,
@@ -12,15 +11,16 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { RulesDialog } from "@/components/rules/rules-dialog";
 import { createGuestIdentity } from "@/features/auth/services/guest-auth.service";
 import type { GuestProfile } from "@/features/debate/types/debate.types";
+import { cn } from "@/lib/utils";
 
 const SAFETY_POINTS = [
-  { label: "Leave instantly", icon: X },
-  { label: "Report the round", icon: ShieldCheck },
+  { label: "Anonymous", icon: Fingerprint },
   { label: "No recording", icon: VideoOff },
+  { label: "Leave anytime", icon: X },
 ] as const;
 
 export function ProfileStep({
@@ -41,71 +41,45 @@ export function ProfileStep({
     displayName.trim().length >= 2 && isAdult && acceptedRules;
 
   return (
-    <section className="screen-enter mx-auto max-w-6xl">
-      <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(420px,0.72fr)] lg:gap-16 xl:gap-24">
-        <div className="lg:pt-4">
-          <div className="flex items-center gap-2 font-mono text-[10px] uppercase text-primary">
-            <Fingerprint className="size-4" />
-            Guest identity
-          </div>
+    <section className="screen-enter relative isolate flex min-h-[calc(100svh-3rem)] items-center justify-center overflow-hidden px-4 py-4 text-center sm:px-6 sm:py-6 lg:min-h-[calc(100svh-3.5rem)] lg:py-8">
+      <div
+        className="pointer-events-none absolute left-1/2 top-[42%] -z-10 h-[38rem] w-[38rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/[0.025] blur-3xl sm:h-[48rem] sm:w-[48rem]"
+        aria-hidden="true"
+      />
 
-          <h1 className="text-balance mt-5 max-w-2xl font-display text-[2.75rem] font-semibold leading-[0.98] sm:text-6xl lg:text-[4.4rem]">
-            Enter the round as yourself.
-          </h1>
-
-          <p className="mt-6 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
-            Use a display name and move straight to the motion. No public profile,
-            follower count, or permanent debate history.
-          </p>
-
-          <div className="mt-10 hidden border-t border-border lg:block">
-            <p className="py-4 text-sm font-semibold">
-              Your safety line, always within reach
-            </p>
-            <div className="grid border-y border-border sm:grid-cols-3">
-              {SAFETY_POINTS.map(({ label, icon: Icon }, index) => (
-                <div
-                  key={label}
-                  className="flex min-h-16 items-center gap-3 border-b border-border py-3 last:border-b-0 sm:border-b-0 sm:border-r sm:px-4 sm:first:pl-0 sm:last:border-r-0"
-                >
-                  <span className="grid size-8 shrink-0 place-items-center rounded-full bg-secondary/10 text-secondary">
-                    <Icon className="size-4" />
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    <span className="mb-0.5 block font-mono text-[9px] text-secondary">
-                      0{index + 1}
-                    </span>
-                    {label}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+      <div className="relative w-full max-w-[28rem]">
+        <div className="relative mx-auto mb-4 grid size-20 place-items-center sm:mb-6 sm:size-24 lg:size-28">
+          <span className="absolute inset-0 rounded-full border border-primary/10" />
+          <span className="absolute inset-2 rounded-full border border-dashed border-primary/20 [animation:opponent-search-orbit_12s_linear_infinite]" />
+          <span className="absolute inset-4 rounded-full bg-primary/[0.08] blur-xl" />
+          <span className="neon-ring relative grid size-14 place-items-center rounded-full bg-[#081216]/90 sm:size-16 lg:size-[4.5rem]">
+            <Fingerprint className="size-6 text-primary sm:size-7 lg:size-8" />
+          </span>
         </div>
 
+        <div className="mx-auto mb-3 inline-flex items-center gap-1.5 rounded-full border border-white/[0.06] bg-white/[0.025] px-3 py-1 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground sm:mb-4">
+          <ShieldCheck className="size-3 text-secondary" />
+          Private by design
+        </div>
+
+        <h1 className="text-balance font-display text-3xl font-bold leading-[1.05] tracking-[-0.04em] sm:text-4xl lg:text-5xl">
+          Who are you today?
+        </h1>
+        <p className="mx-auto mt-2 max-w-sm text-sm leading-5 text-muted-foreground sm:mt-3 sm:text-[15px]">
+          Choose a debate name. Your real identity stays out of the room.
+        </p>
+
         <form
-          className="surface-lift broadcast-rule border border-border bg-card p-5 pt-8 sm:p-8 sm:pt-10"
+          className="mt-5 w-full sm:mt-7"
           onSubmit={(event) => {
             event.preventDefault();
             if (canContinue) createGuest.mutate(displayName);
           }}
         >
-          <div className="border-b border-border pb-6">
-            <p className="font-mono text-[10px] uppercase text-muted-foreground">
-              Round entry
-            </p>
-            <h2 className="mt-2 font-display text-3xl font-semibold">
-              Create your guest identity
-            </h2>
-          </div>
-
-          <div className="mt-6">
-            <label
-              htmlFor="display-name"
-              className="text-xs font-semibold text-foreground"
-            >
-              Display name
-            </label>
+          <label htmlFor="display-name" className="sr-only">
+            Debate name
+          </label>
+          <div className="relative">
             <Input
               id="display-name"
               value={displayName}
@@ -113,43 +87,63 @@ export function ProfileStep({
               placeholder="Your debate name"
               maxLength={32}
               autoComplete="nickname"
-              className="mt-2"
+              autoFocus
+              className="h-13 rounded-full border-white/10 bg-white/[0.045] pl-6 pr-16 text-center text-base shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] backdrop-blur-sm transition-all duration-300 placeholder:text-muted-foreground/55 focus:border-primary/40 focus:bg-white/[0.06] focus:ring-2 focus:ring-primary/15 sm:h-14"
             />
-            <p className="mt-2 text-xs text-muted-foreground">
-              This is the only name your opponent will see.
-            </p>
+            <span className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 font-mono text-[9px] text-muted-foreground/65">
+              {displayName.length}/32
+            </span>
           </div>
 
-          <div className="mt-6 divide-y divide-border border-y border-border">
-            <label className="flex cursor-pointer items-start gap-3 py-4 text-sm leading-6">
-              <Checkbox
-                checked={isAdult}
-                onCheckedChange={(value) => setIsAdult(value === true)}
-              />
-              <span>I confirm that I am at least 18 years old.</span>
-            </label>
-            <label className="flex cursor-pointer items-start gap-3 py-4 text-sm leading-6">
-              <Checkbox
-                checked={acceptedRules}
-                onCheckedChange={(value) => setAcceptedRules(value === true)}
-              />
-              <span>
-                I agree to the{" "}
-                <Link
-                  href="/rules"
-                  className="font-semibold text-primary underline decoration-primary/50 underline-offset-4"
-                >
-                  arena rules
-                </Link>{" "}
-                and will debate without threats, hate, harassment, or explicit
-                content.
+          <div className="mt-3 overflow-hidden rounded-[1.25rem] border border-white/[0.07] bg-white/[0.025] p-1 text-left shadow-[0_16px_50px_rgba(0,0,0,0.18)] sm:mt-4">
+            <div className="flex min-h-14 items-center justify-between gap-4 rounded-2xl px-3.5 py-2.5 transition-colors hover:bg-white/[0.025] sm:px-4">
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-foreground">
+                  I am 18 or older
+                </span>
+                <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                  Required for live debate rooms
+                </span>
               </span>
-            </label>
+              <ToggleSwitch
+                checked={isAdult}
+                onToggle={() => setIsAdult((value) => !value)}
+                label="Confirm that you are 18 or older"
+              />
+            </div>
+
+            <div className="mx-3 h-px bg-white/[0.06]" />
+
+            <div className="flex min-h-14 items-center justify-between gap-4 rounded-2xl px-3.5 py-2.5 transition-colors hover:bg-white/[0.025] sm:px-4">
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-foreground">
+                  I accept the{" "}
+                  <RulesDialog
+                    trigger={
+                      <button
+                        type="button"
+                        className="text-primary underline decoration-primary/40 underline-offset-4 transition-colors hover:text-primary/80"
+                      >
+                        arena rules
+                      </button>
+                    }
+                  />
+                </span>
+                <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                  Keep it civil, focused, and safe
+                </span>
+              </span>
+              <ToggleSwitch
+                checked={acceptedRules}
+                onToggle={() => setAcceptedRules((value) => !value)}
+                label="Accept the arena rules"
+              />
+            </div>
           </div>
 
           {createGuest.error ? (
-            <p className="mt-5 border-l-2 border-destructive pl-3 text-sm text-destructive">
-              We could not create your guest identity. Please try again.
+            <p className="mt-3 text-sm text-destructive" role="alert">
+              Could not create identity. Please try again.
             </p>
           ) : null}
 
@@ -157,37 +151,60 @@ export function ProfileStep({
             type="submit"
             size="lg"
             disabled={!canContinue || createGuest.isPending}
-            className="mt-7 w-full"
+            className={cn(
+              "mt-4 h-12 w-full rounded-full text-sm font-semibold transition-all duration-300 sm:mt-5 sm:h-13 sm:text-base",
+              canContinue
+                ? "border-primary/60 bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-[0_0_28px_rgba(0,240,255,0.18)] hover:border-primary hover:brightness-110 hover:shadow-[0_0_36px_rgba(0,240,255,0.3)]"
+                : "border-white/[0.06] bg-white/[0.055] text-muted-foreground",
+            )}
           >
-            {createGuest.isPending ? "Preparing identity" : "Continue to motion"}
-            <ArrowRight />
+            {createGuest.isPending ? "Preparing your seat..." : "Enter the arena"}
+            <ArrowRight className="ml-1 size-4" />
           </Button>
         </form>
 
-        <div className="lg:hidden">
-          <p className="border-t border-border py-4 text-sm font-semibold">
-            Your safety line, always within reach
-          </p>
-          <div className="border-y border-border">
-            {SAFETY_POINTS.map(({ label, icon: Icon }, index) => (
-              <div
-                key={label}
-                className="flex min-h-16 items-center gap-3 border-b border-border py-3 last:border-b-0"
-              >
-                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-secondary/10 text-secondary">
-                  <Icon className="size-4" />
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  <span className="mb-0.5 block font-mono text-[9px] text-secondary">
-                    0{index + 1}
-                  </span>
-                  {label}
-                </span>
-              </div>
-            ))}
-          </div>
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[10px] text-muted-foreground/65 sm:mt-5 sm:text-[11px]">
+          {SAFETY_POINTS.map(({ label, icon: Icon }) => (
+            <span key={label} className="flex items-center gap-1.5">
+              <Icon className="size-3" />
+              {label}
+            </span>
+          ))}
         </div>
       </div>
     </section>
+  );
+}
+
+function ToggleSwitch({
+  checked,
+  onToggle,
+  label,
+}: {
+  checked: boolean;
+  onToggle: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={onToggle}
+      className={cn(
+        "relative h-7 w-12 shrink-0 rounded-full border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        checked
+          ? "border-primary/60 bg-primary shadow-[0_0_14px_rgba(0,240,255,0.18)]"
+          : "border-white/10 bg-white/[0.08]",
+      )}
+    >
+      <span
+        className={cn(
+          "absolute left-0.5 top-0.5 size-[1.375rem] rounded-full bg-white shadow-sm transition-transform duration-200",
+          checked && "translate-x-5",
+        )}
+      />
+    </button>
   );
 }
