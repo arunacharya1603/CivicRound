@@ -1,4 +1,3 @@
-import { DEBATE_TOPICS } from "@/features/debate/data/topics";
 import type {
   DebateSession,
   DebateSetup,
@@ -18,10 +17,11 @@ interface MatchmakingRow {
   current_speaker_order: SpeakerOrder | null;
 }
 
-const POLL_INTERVAL_MS = 1_000;
+const POLL_INTERVAL_MS = 750;
 const MATCH_TIMEOUT_MS = 120_000;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const TOPIC_ID_PATTERN = /^[a-z0-9][a-z0-9-]{1,79}$/;
 
 function firstRow(data: unknown) {
   return (Array.isArray(data) ? data[0] : data) as MatchmakingRow | null;
@@ -61,15 +61,17 @@ function wait(milliseconds: number, signal?: AbortSignal) {
       return;
     }
 
-    const timeoutId = window.setTimeout(resolve, milliseconds);
-    signal?.addEventListener(
-      "abort",
-      () => {
-        window.clearTimeout(timeoutId);
-        reject(abortError());
-      },
-      { once: true },
-    );
+    const handleAbort = () => {
+      window.clearTimeout(timeoutId);
+      signal?.removeEventListener("abort", handleAbort);
+      reject(abortError());
+    };
+    const timeoutId = window.setTimeout(() => {
+      signal?.removeEventListener("abort", handleAbort);
+      resolve();
+    }, milliseconds);
+
+    signal?.addEventListener("abort", handleAbort, { once: true });
   });
 }
 
@@ -80,13 +82,16 @@ async function pollForMatch(
   const deadline = Date.now() + MATCH_TIMEOUT_MS;
 
   while (Date.now() < deadline) {
-    await wait(POLL_INTERVAL_MS, signal);
+    if (signal?.aborted) throw abortError();
+
     const row = await requestStatus();
     const session = row ? toSession(row) : null;
     if (session) return session;
     if (row?.match_status === "expired") {
       throw new Error("The matchmaking request expired.");
     }
+
+    await wait(POLL_INTERVAL_MS, signal);
   }
 
   throw new Error("No opponent joined before the queue expired.");
@@ -130,18 +135,25 @@ export async function findDebateMatch(
     return session;
   }
 
-  const join = await supabase.rpc("join_matchmaking", {
+  const queueRequest = {
     p_topic_id: setup.topicId,
     p_stance: setup.stance,
     p_duration_seconds: setup.duration,
-  });
+  };
+  const join = await supabase.rpc("join_matchmaking", queueRequest);
   if (join.error) throw join.error;
 
   const immediate = toSession(firstRow(join.data) as MatchmakingRow);
   if (immediate) return immediate;
+
+  let pollCount = 0;
   try {
     return await pollForMatch(async () => {
-      const status = await supabase.rpc("get_matchmaking_status");
+      pollCount += 1;
+      const status =
+        pollCount % 4 === 0
+          ? await supabase.rpc("join_matchmaking", queueRequest)
+          : await supabase.rpc("get_matchmaking_status");
       if (status.error) throw status.error;
       return firstRow(status.data);
     }, signal);
@@ -156,6 +168,17 @@ export async function cancelMatchmaking() {
   if (!supabase) return;
   const result = await supabase.rpc("cancel_matchmaking");
   if (result.error) throw result.error;
+}
+
+export async function getCurrentDebateMatch() {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
+  const status = await supabase.rpc("get_matchmaking_status");
+  if (status.error) throw status.error;
+
+  const row = firstRow(status.data);
+  return row ? toSession(row) : null;
 }
 
 export async function createDebateInvite(setup: DebateSetup) {
@@ -225,7 +248,7 @@ export function readInviteSetup(): DebateSetup | null {
     !inviteCode ||
     !UUID_PATTERN.test(inviteCode) ||
     !topicId ||
-    !DEBATE_TOPICS.some((topic) => topic.id === topicId) ||
+    !TOPIC_ID_PATTERN.test(topicId) ||
     (stance !== "support" && stance !== "challenge") ||
     (duration !== 60 && duration !== 120)
   ) {

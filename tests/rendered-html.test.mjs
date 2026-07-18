@@ -93,3 +93,145 @@ test("defines the production backend contract", async () => {
   assert.match(liveRoom, /useSynchronizedDebateTimer/);
   assert.match(envExample, /NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY/);
 });
+
+test("uses one canonical topic source throughout the live flow", async () => {
+  const [app, topicsService, matchStep, matchmaking] = await Promise.all([
+    readFile(
+      new URL("../features/debate/components/civic-round-app.tsx", import.meta.url),
+      "utf8",
+    ),
+    readFile(
+      new URL("../features/debate/services/topics.service.ts", import.meta.url),
+      "utf8",
+    ),
+    readFile(
+      new URL("../features/matchmaking/components/match-step.tsx", import.meta.url),
+      "utf8",
+    ),
+    readFile(
+      new URL(
+        "../features/matchmaking/services/matchmaking.service.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  ]);
+
+  assert.match(topicsService, /[.]from[(]"debate_topics"[)]/);
+  assert.match(topicsService, /[.]eq[(]"is_active", true[)]/);
+  assert.match(app, /queryFn: listDebateTopics/);
+  assert.match(app, /topics={topics}/);
+  assert.match(app, /topic={topic}/);
+  assert.doesNotMatch(matchStep, /getDebateTopic/);
+  assert.doesNotMatch(matchmaking, /DEBATE_TOPICS/);
+  assert.match(matchmaking, /TOPIC_ID_PATTERN/);
+  assert.match(matchStep, /getCurrentDebateMatch/);
+  assert.match(matchStep, /activeRef/);
+});
+
+test("protects the manager-facing debate flow", async () => {
+  const [roundStep, matchStep, deviceStep, phases, liveRoom, baseMigration, reliabilityMigration] =
+    await Promise.all([
+      readFile(new URL("../features/debate/components/round-step.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../features/matchmaking/components/match-step.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../features/device/components/device-step.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../features/debate/lib/debate-phases.ts", import.meta.url), "utf8"),
+      readFile(
+        new URL("../features/video/components/livekit-debate-room.tsx", import.meta.url),
+        "utf8",
+      ),
+      readFile(
+        new URL("../supabase/migrations/202607150001_civicround.sql", import.meta.url),
+        "utf8",
+      ),
+      readFile(
+        new URL(
+          "../supabase/migrations/202607180001_matchmaking_reliability.sql",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    ]);
+
+  assert.doesNotMatch(roundStep, /line-clamp-[12]/);
+  assert.match(roundStep, /overflow-wrap:anywhere/);
+  assert.match(deviceStep, />Find Match</);
+  assert.match(matchStep, /autoStartRef/);
+  assert.match(matchStep, /onMatched\(match\)/);
+  assert.doesNotMatch(matchStep, /Enter live room/);
+  assert.match(phases, /speaker-one-closing/);
+  assert.doesNotMatch(phases, /speaker-one-response/);
+  assert.match(liveRoom, /adaptiveStream: true/);
+  assert.match(liveRoom, /dynacast: true/);
+  assert.match(liveRoom, /ConnectionState.Reconnecting/);
+  assert.doesNotMatch(liveRoom, /truncate font-display/);
+  assert.match(baseMigration, /pg_advisory_xact_lock/);
+  assert.match(reliabilityMigration, /started_at = now\(\) \+ interval '3 seconds'/);
+});
+
+
+test("protects browser-audit regressions", async () => {
+  const [roundStep, deviceStep, app, resultsStep, liveRoom] = await Promise.all([
+    readFile(new URL("../features/debate/components/round-step.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../features/device/components/device-step.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../features/debate/components/civic-round-app.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../features/debate/components/results-step.tsx", import.meta.url), "utf8"),
+    readFile(
+      new URL("../features/video/components/livekit-debate-room.tsx", import.meta.url),
+      "utf8",
+    ),
+  ]);
+
+  assert.match(roundStep, /min-h-\[8\.5rem\]/);
+  assert.doesNotMatch(deviceStep, /Run check/);
+  assert.match(deviceStep, /useSyncExternalStore/);
+  assert.match(deviceStep, /cameraEnabled: media\.cameraEnabled/);
+  assert.match(deviceStep, /microphoneEnabled: media\.microphoneEnabled/);
+  assert.match(deviceStep, /aria-pressed=\{media\.cameraEnabled\}/);
+  assert.match(deviceStep, /aria-pressed=\{media\.microphoneEnabled\}/);
+
+  assert.match(app, /mediaPreferences=\{mediaPreferences\}/);
+  assert.match(app, /outcome=\{roomOutcome\}/);
+  assert.match(resultsStep, /Round ended early/);
+  assert.match(resultsStep, /No result/);
+  assert.match(resultsStep, /"Support" : "Against"/);
+  assert.match(resultsStep, /aria-pressed=\{selected\}/);
+
+  assert.match(liveRoom, /mediaPreferences\.cameraEnabled/);
+  assert.match(liveRoom, /mediaPreferences\.microphoneEnabled/);
+  assert.match(liveRoom, /onLeave\("cancelled"\)/);
+  assert.match(liveRoom, /civic-participant-tile/);
+  assert.match(liveRoom, /aria-label="Report opponent"/);
+  assert.match(liveRoom, /aria-pressed=\{isMicrophoneEnabled\}/);
+  assert.match(liveRoom, /aria-pressed=\{isCameraEnabled\}/);
+  assert.doesNotMatch(liveRoom, /prevCanSpeakRef/);
+});
+
+
+test("reconciles simultaneous matchmaking and LiveKit metadata", async () => {
+  const [matchmaking, reconciliationMigration, globalCss] = await Promise.all([
+    readFile(
+      new URL(
+        "../features/matchmaking/services/matchmaking.service.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+    readFile(
+      new URL(
+        "../supabase/migrations/202607190001_matchmaking_poll_reconciliation.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(matchmaking, /pollCount % 4 === 0/);
+  assert.match(matchmaking, /join_matchmaking/);
+  assert.match(reconciliationMigration, /create or replace function public\.get_matchmaking_status/);
+  assert.match(reconciliationMigration, /pg_advisory_xact_lock/);
+  assert.match(reconciliationMigration, /for update skip locked/);
+  assert.match(globalCss, /civic-participant-tile \.lk-participant-metadata/);
+  assert.match(globalCss, /display: none !important/);
+});

@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { DEBATE_TOPICS } from "@/features/debate/data/topics";
 import type {
   DebateDuration,
   DebateSetup,
@@ -21,18 +20,19 @@ import type {
 import { cn } from "@/lib/utils";
 
 export function RoundStep({
+  topics,
   onBack,
   onComplete,
 }: {
+  topics: DebateTopic[];
   onBack: () => void;
   onComplete: (setup: DebateSetup) => void;
 }) {
-  const [topicId, setTopicId] = useState(DEBATE_TOPICS[0].id);
+  const [topicId, setTopicId] = useState(topics[0]!.id);
   const [stance, setStance] = useState<DebateStance>("support");
   const [duration, setDuration] = useState<DebateDuration>(120);
 
-  const topic =
-    DEBATE_TOPICS.find((item) => item.id === topicId) ?? DEBATE_TOPICS[0];
+  const topic = topics.find((item) => item.id === topicId) ?? topics[0]!;
 
   const continueToDevices = () =>
     onComplete({ topicId, stance, duration });
@@ -63,7 +63,7 @@ export function RoundStep({
       </header>
 
       <div className="no-scrollbar mt-3 grid min-h-0 flex-1 gap-3 overflow-y-auto overscroll-contain pb-2 sm:mt-6 sm:grid-cols-2 sm:overflow-visible sm:pb-0 lg:grid-cols-3">
-        {DEBATE_TOPICS.map((item, index) => (
+        {topics.map((item, index) => (
           <MotionCard
             key={item.id}
             topic={item}
@@ -79,7 +79,7 @@ export function RoundStep({
           <p className="font-mono text-[11px] font-medium uppercase tracking-[0.11em] text-primary">
             Selected
           </p>
-          <p className="mt-1 truncate text-sm font-medium text-foreground">
+          <p className="mt-1 text-sm font-medium leading-5 text-foreground [overflow-wrap:anywhere]">
             {topic.statement}
           </p>
         </div>
@@ -143,7 +143,7 @@ function MotionCard({
       aria-pressed={selected}
       onClick={onSelect}
       className={cn(
-        "group relative flex min-h-[7rem] flex-col rounded-2xl border p-4 text-left transition-all sm:min-h-[8rem] sm:p-5",
+        "group relative flex min-h-[8.5rem] flex-col rounded-2xl border p-4 text-left transition-all sm:min-h-[9rem] sm:p-5",
         selected
           ? "border-primary/35 bg-primary/[0.065] shadow-[0_14px_36px_rgba(0,240,255,0.045)]"
           : "border-white/[0.075] bg-[#090c11]/72 hover:border-white/[0.14] hover:bg-white/[0.025]",
@@ -178,10 +178,10 @@ function MotionCard({
         </span>
       </span>
 
-      <span className="mt-3 line-clamp-2 text-[15px] font-medium leading-[1.35] text-foreground">
+      <span className="mt-3 text-[15px] font-medium leading-[1.35] text-foreground [overflow-wrap:anywhere]">
         {topic.statement}
       </span>
-      <span className="mt-auto line-clamp-1 pt-2 text-xs font-normal leading-5 text-muted-foreground">
+      <span className="mt-auto pt-2 text-xs font-normal leading-5 text-muted-foreground [overflow-wrap:anywhere]">
         {topic.context}
       </span>
     </button>

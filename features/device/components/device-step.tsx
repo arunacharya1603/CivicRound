@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import type { DebateMediaPreferences } from "@/features/debate/types/debate.types";
 import {
   Tooltip,
   TooltipContent,
@@ -22,6 +23,20 @@ import {
 import type { MediaDeviceController } from "@/hooks/use-media-devices";
 import { cn } from "@/lib/utils";
 
+function subscribeOnlineStatus(onStoreChange: () => void) {
+  window.addEventListener("online", onStoreChange);
+  window.addEventListener("offline", onStoreChange);
+
+  return () => {
+    window.removeEventListener("online", onStoreChange);
+    window.removeEventListener("offline", onStoreChange);
+  };
+}
+
+function readOnlineStatus() {
+  return navigator.onLine;
+}
+
 export function DeviceStep({
   media,
   onBack,
@@ -29,10 +44,15 @@ export function DeviceStep({
 }: {
   media: MediaDeviceController;
   onBack: () => void;
-  onComplete: () => void;
+  onComplete: (preferences: DebateMediaPreferences) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const ready = media.status === "ready";
+  const online = useSyncExternalStore(
+    subscribeOnlineStatus,
+    readOnlineStatus,
+    () => true,
+  );
 
   useEffect(() => {
     if (videoRef.current) videoRef.current.srcObject = media.stream;
@@ -155,6 +175,7 @@ export function DeviceStep({
                     type="button"
                     onClick={media.toggleMicrophone}
                     aria-label={media.microphoneEnabled ? "Mute microphone" : "Unmute microphone"}
+                    aria-pressed={media.microphoneEnabled}
                     className={cn(
                       "grid size-10 place-items-center rounded-full transition-colors sm:size-11",
                       media.microphoneEnabled
@@ -180,6 +201,7 @@ export function DeviceStep({
                     type="button"
                     onClick={media.toggleCamera}
                     aria-label={media.cameraEnabled ? "Turn camera off" : "Turn camera on"}
+                    aria-pressed={media.cameraEnabled}
                     className={cn(
                       "grid size-10 place-items-center rounded-full transition-colors sm:size-11",
                       media.cameraEnabled
@@ -211,10 +233,10 @@ export function DeviceStep({
             <AudioMeter stream={media.stream} enabled={media.microphoneEnabled} />
           </span>
         ) : null}
-        <StatusChip label="Network" ready />
+        <StatusChip label="Network" ready={online} />
       </div>
 
-      <div className="mt-2 grid w-full max-w-5xl shrink-0 grid-cols-[2.75rem_minmax(0,0.8fr)_minmax(0,1fr)] gap-2 sm:mt-3 sm:grid-cols-[3rem_minmax(10rem,0.7fr)_minmax(12rem,1fr)]">
+      <div className="mt-2 grid w-full max-w-5xl shrink-0 grid-cols-[2.75rem_minmax(0,1fr)] gap-2 sm:mt-3 sm:grid-cols-[3rem_minmax(12rem,1fr)]">
         <Button
           variant="ghost"
           size="lg"
@@ -225,30 +247,17 @@ export function DeviceStep({
           <ArrowLeft className="size-4" />
         </Button>
         <Button
-          variant="ghost"
           size="lg"
-          onClick={media.requestMedia}
-          disabled={media.status === "requesting"}
-          className="h-11 min-w-0 rounded-full border border-white/[0.08] px-2 text-[11px] text-foreground hover:border-primary/25 hover:bg-primary/[0.06] sm:h-12 sm:px-4 sm:text-xs"
-        >
-          <RefreshCw
-            className={cn(
-              "size-3.5",
-              media.status === "requesting" && "animate-spin",
-            )}
-          />
-          <span className="sm:hidden">Run check</span>
-          <span className="hidden sm:inline">
-            {ready ? "Run check again" : "Run device check"}
-          </span>
-        </Button>
-        <Button
-          size="lg"
-          onClick={onComplete}
+          onClick={() =>
+            onComplete({
+              cameraEnabled: media.cameraEnabled,
+              microphoneEnabled: media.microphoneEnabled,
+            })
+          }
+          disabled={!ready || !online}
           className="h-11 min-w-0 rounded-full border-primary/50 bg-gradient-to-r from-primary to-secondary px-2 font-semibold text-primary-foreground shadow-[0_0_24px_rgba(0,240,255,0.16)] transition-all duration-300 hover:brightness-110 hover:shadow-[0_0_32px_rgba(0,240,255,0.28)] sm:h-12 sm:px-5"
         >
-          <span className="sm:hidden">Continue</span>
-          <span className="hidden sm:inline">Enter matchmaking</span>
+          <span>Find Match</span>
           <ArrowRight className="ml-1 size-4" />
         </Button>
       </div>

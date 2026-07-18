@@ -39,6 +39,9 @@ export const DEBATE_TOPICS: DebateTopic[] = [
   },
 ];
 
-export function getDebateTopic(topicId: string) {
-  return DEBATE_TOPICS.find((topic) => topic.id === topicId) ?? DEBATE_TOPICS[0];
+export function getDebateTopic(
+  topicId: string,
+  topics: DebateTopic[] = DEBATE_TOPICS,
+) {
+  return topics.find((topic) => topic.id === topicId) ?? null;
 }

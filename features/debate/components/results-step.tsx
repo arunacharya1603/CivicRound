@@ -14,6 +14,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import type {
+  DebateRoomOutcome,
   DebateSession,
   DebateSetup,
   DebateTopic,
@@ -31,15 +32,18 @@ export function ResultsStep({
   topic,
   setup,
   session,
+  outcome,
   onRematch,
   onNewRound,
 }: {
   topic: DebateTopic;
   setup: DebateSetup;
   session: DebateSession;
+  outcome: DebateRoomOutcome;
   onRematch: () => void;
   onNewRound: () => void;
 }) {
+  const completed = outcome === "complete";
   const [feedback, setFeedback] = useState<string[]>([]);
   const feedbackSubmission = useMutation({
     mutationFn: () =>
@@ -54,22 +58,29 @@ export function ResultsStep({
       <header className="grid gap-6 border-b border-border pb-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-end">
         <div>
           <p className="font-mono text-[10px] uppercase text-primary">
-            Round complete
+            {completed ? "Round complete" : "Round ended"}
           </p>
           <h1 className="mt-3 font-display text-5xl font-semibold leading-none sm:text-6xl">
-            Good round.
+            {completed ? "Good round." : "Round ended early."}
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">
-            The disagreement stays in the room. Recognize a strong opponent or
-            move straight into another motion.
+            {completed
+              ? "The disagreement stays in the room. Recognize a strong opponent or move straight into another motion."
+              : "A participant left before the timer finished. This round was not marked as complete."}
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <ResultStat
             icon={TimerReset}
-            value={setup.duration === 60 ? "01:00" : "02:00"}
-            label="Round time"
+            value={
+              completed
+                ? setup.duration === 60
+                  ? "01:00"
+                  : "02:00"
+                : "No result"
+            }
+            label={completed ? "Round time" : "Round status"}
             tone="primary"
           />
           <ResultStat
@@ -84,7 +95,7 @@ export function ResultsStep({
       <div className="grid gap-8 pt-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
         <div className="min-w-0">
           <p className="font-mono text-[9px] uppercase text-muted-foreground">
-            Motion debated
+            {completed ? "Motion debated" : "Motion selected"}
           </p>
           <div className="mt-3 border-l-2 border-primary bg-card p-5 sm:p-7">
             <p className="max-w-3xl font-display text-3xl font-semibold leading-tight">
@@ -92,13 +103,14 @@ export function ResultsStep({
             </p>
           </div>
 
-          <div className="mt-8 border-t border-border pt-7">
-            <p className="text-sm font-semibold">Recognize the opponent</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Optional feedback is private and helps reinforce better rounds.
-            </p>
+          {completed ? (
+            <div className="mt-8 border-t border-border pt-7">
+              <p className="text-sm font-semibold">Recognize the opponent</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Optional feedback is private and helps reinforce better rounds.
+              </p>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
               {FEEDBACK.map(([id, label, Icon]) => {
                 const selected = feedback.includes(id);
 
@@ -106,6 +118,7 @@ export function ResultsStep({
                   <button
                     key={id}
                     type="button"
+                    aria-pressed={selected}
                     onClick={() => {
                       feedbackSubmission.reset();
                       setFeedback((current) =>
@@ -125,10 +138,10 @@ export function ResultsStep({
                   </button>
                 );
               })}
-            </div>
+              </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <Button
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <Button
                 size="sm"
                 variant="outline"
                 onClick={() => feedbackSubmission.mutate()}
@@ -140,14 +153,15 @@ export function ResultsStep({
                   : feedbackSubmission.isSuccess
                     ? "Feedback saved"
                     : "Send feedback"}
-              </Button>
-              {feedbackSubmission.error ? (
-                <span className="text-xs text-destructive">
-                  Feedback could not be saved.
-                </span>
-              ) : null}
+                </Button>
+                {feedbackSubmission.error ? (
+                  <span className="text-xs text-destructive">
+                    Feedback could not be saved.
+                  </span>
+                ) : null}
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
 
         <aside className="border-y border-border py-5 lg:sticky lg:top-24">
@@ -163,7 +177,7 @@ export function ResultsStep({
                 {session.opponentName}
               </p>
               <p className="mt-1 font-mono text-[9px] uppercase text-accent">
-                {session.opponentStance}
+                {session.opponentStance === "support" ? "Support" : "Against"}
               </p>
             </div>
           </div>

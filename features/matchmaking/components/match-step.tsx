@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import {
   ArrowLeft,
-  ArrowRight,
   Check,
   Clock3,
   Copy,
@@ -16,10 +15,10 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { getDebateTopic } from "@/features/debate/data/topics";
 import type {
   DebateSession,
   DebateSetup,
+  DebateTopic,
   GuestProfile,
 } from "@/features/debate/types/debate.types";
 import {
@@ -27,6 +26,7 @@ import {
   cancelMatchmaking,
   createDebateInvite,
   findDebateMatch,
+  getCurrentDebateMatch,
   waitForInviteMatch,
 } from "@/features/matchmaking/services/matchmaking.service";
 import { cn } from "@/lib/utils";
@@ -34,11 +34,13 @@ import { cn } from "@/lib/utils";
 export function MatchStep({
   profile,
   setup,
+  topic,
   onBack,
   onMatched,
 }: {
   profile: GuestProfile;
   setup: DebateSetup;
+  topic: DebateTopic;
   onBack: () => void;
   onMatched: (session: DebateSession) => void;
 }) {
@@ -48,7 +50,9 @@ export function MatchStep({
   const queueAbortRef = useRef<AbortController | null>(null);
   const inviteAbortRef = useRef<AbortController | null>(null);
   const inviteCodeRef = useRef<string | null>(null);
-  const topic = getDebateTopic(setup.topicId);
+  const activeRef = useRef(true);
+  const autoStartRef = useRef(false);
+  const enteredMatchRef = useRef(false);
 
   const matchmaking = useMutation({
     mutationFn: () => {
@@ -83,40 +87,71 @@ export function MatchStep({
     },
   });
 
+  const inviteSwitch = useMutation({
+    mutationFn: async () => {
+      queueAbortRef.current?.abort();
+      await cancelMatchmaking();
+      return getCurrentDebateMatch();
+    },
+    onSuccess: (existingMatch) => {
+      if (!activeRef.current) return;
+      if (existingMatch) {
+        setMatch(existingMatch);
+        return;
+      }
+      inviteCreation.mutate();
+    },
+  });
+
+  const startMatchmaking = matchmaking.mutate;
+
   useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      if (autoStartRef.current) return;
+      autoStartRef.current = true;
+      startMatchmaking();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [startMatchmaking]);
+
+  useEffect(() => {
+    activeRef.current = true;
     return () => {
+      activeRef.current = false;
       queueAbortRef.current?.abort();
       inviteAbortRef.current?.abort();
     };
   }, []);
 
   useEffect(() => {
-    if (!match) return;
+    if (!match || enteredMatchRef.current) return;
+    enteredMatchRef.current = true;
     playMatchChime();
-    let intervalId: number;
-    if (document.hidden) {
-      const originalTitle = document.title;
-      let toggle = false;
-      intervalId = window.setInterval(() => {
-        document.title = toggle ? "Match found | CivicRound" : originalTitle;
-        toggle = !toggle;
-      }, 1000);
-      const handleFocus = () => {
-        window.clearInterval(intervalId);
-        document.title = originalTitle;
-        window.removeEventListener("focus", handleFocus);
-      };
-      window.addEventListener("focus", handleFocus);
-    }
-    return () => {
-      if (intervalId) window.clearInterval(intervalId);
-    };
-  }, [match]);
+    onMatched(match);
+  }, [match, onMatched]);
 
-  const isSearching = matchmaking.isPending || inviteWaiting.isPending;
-  const error = matchmaking.error ?? inviteCreation.error ?? inviteWaiting.error;
+  const isSearching =
+    matchmaking.isPending ||
+    inviteCreation.isPending ||
+    inviteWaiting.isPending ||
+    inviteSwitch.isPending;
+  const error =
+    [
+      matchmaking.error,
+      inviteCreation.error,
+      inviteWaiting.error,
+      inviteSwitch.error,
+    ].find(
+      (candidate) => candidate && candidate.name !== "AbortError",
+    ) ?? null;
+
+  const switchToInvite = () => {
+    if (!inviteSwitch.isPending) inviteSwitch.mutate();
+  };
 
   const leaveMatchmaking = () => {
+    activeRef.current = false;
     queueAbortRef.current?.abort();
     inviteAbortRef.current?.abort();
     void cancelMatchmaking().catch(() => undefined);
@@ -172,7 +207,7 @@ export function MatchStep({
           </h1>
           <p className="mt-1.5 max-w-xl text-xs leading-5 text-muted-foreground sm:text-sm">
             {match
-              ? "Both sides are confirmed. Enter the room when you are ready."
+              ? "Both sides are confirmed. Opening your shared room."
               : isSearching
                 ? "We are matching this motion with someone defending the other side."
                 : "One motion, two positions, and a focused live debate."}
@@ -188,8 +223,11 @@ export function MatchStep({
               <p className="font-mono text-[7px] font-semibold uppercase tracking-[0.17em] text-muted-foreground/50 sm:text-[8px]">
                 Selected motion
               </p>
-              <p className="mt-0.5 truncate text-[11px] font-semibold text-foreground sm:text-xs">
+              <p className="mt-0.5 text-[11px] font-semibold leading-4 text-foreground [overflow-wrap:anywhere] sm:text-xs">
                 {topic.statement}
+              </p>
+              <p className="mt-0.5 text-[10px] leading-4 text-muted-foreground [overflow-wrap:anywhere]">
+                {topic.context}
               </p>
             </div>
           </div>
@@ -310,7 +348,7 @@ export function MatchStep({
               )}
             />
             {match
-              ? "Both debaters are ready to enter"
+              ? "Opening one shared live room"
               : isSearching
                 ? "Your place in the queue is secured"
                 : "The open seat will defend the opposite position"}
@@ -321,40 +359,51 @@ export function MatchStep({
           {match ? (
             <Button
               size="lg"
-              onClick={() => onMatched(match)}
-              className="h-12 w-full rounded-full border-primary/50 bg-gradient-to-r from-primary to-secondary font-semibold text-primary-foreground shadow-[0_0_28px_rgba(0,240,255,0.18)] transition-all duration-300 hover:brightness-110 hover:shadow-[0_0_38px_rgba(0,240,255,0.3)]"
+              disabled
+              className="h-12 w-full rounded-full border-primary/30 bg-primary/10 font-semibold text-primary"
             >
               <Zap className="mr-1 size-4" />
-              Enter live room
-              <ArrowRight className="ml-1 size-4" />
+              Opening live room
             </Button>
           ) : isSearching ? (
-            <Button
-              size="lg"
-              variant="ghost"
-              onClick={leaveMatchmaking}
-              className="h-12 w-full rounded-full border border-destructive/25 bg-destructive/[0.07] text-destructive hover:border-destructive/35 hover:bg-destructive/10 hover:text-destructive"
-            >
-              <span className="live-dot mr-1 size-2 rounded-full bg-destructive" />
-              Stop matchmaking
-            </Button>
+            <div>
+              <Button
+                size="lg"
+                variant="ghost"
+                onClick={leaveMatchmaking}
+                className="h-12 w-full rounded-full border border-destructive/25 bg-destructive/[0.07] text-destructive hover:border-destructive/35 hover:bg-destructive/10 hover:text-destructive"
+              >
+                <span className="live-dot mr-1 size-2 rounded-full bg-destructive" />
+                Stop matchmaking
+              </Button>
+              {!setup.inviteCode && !inviteUrl ? (
+                <button
+                  type="button"
+                  onClick={switchToInvite}
+                  disabled={inviteCreation.isPending || inviteSwitch.isPending}
+                  className="mt-2 w-full text-center text-xs text-muted-foreground transition-colors hover:text-foreground disabled:cursor-wait disabled:opacity-60"
+                >
+                  Invite a friend instead
+                </button>
+              ) : null}
+            </div>
           ) : (
             <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
               <Button
                 size="lg"
                 onClick={() => matchmaking.mutate()}
-                disabled={inviteCreation.isPending}
+                disabled={inviteCreation.isPending || inviteSwitch.isPending}
                 className="h-12 rounded-full border-primary/50 bg-gradient-to-r from-primary to-secondary px-7 font-semibold text-primary-foreground shadow-[0_0_24px_rgba(0,240,255,0.16)] transition-all duration-300 hover:brightness-110 hover:shadow-[0_0_34px_rgba(0,240,255,0.28)]"
               >
                 <Swords className="mr-1 size-4" />
-                {setup.inviteCode ? "Join private match" : "Find a match"}
+                {setup.inviteCode ? "Join private match" : error ? "Try again" : "Find Match"}
               </Button>
               {!setup.inviteCode ? (
                 <Button
                   size="lg"
                   variant="ghost"
                   onClick={() => inviteCreation.mutate()}
-                  disabled={inviteCreation.isPending}
+                  disabled={inviteCreation.isPending || inviteSwitch.isPending}
                   className="h-12 rounded-full border border-white/[0.07] px-6 text-muted-foreground hover:border-white/12 hover:bg-white/[0.04] hover:text-foreground"
                 >
                   <Link2 className="mr-1 size-4" />
@@ -364,7 +413,7 @@ export function MatchStep({
             </div>
           )}
 
-          {error && error.name !== "AbortError" ? (
+          {error ? (
             <p className="mt-3 text-center text-sm text-destructive" role="alert">
               {error.message || "Matchmaking unavailable. Try again."}
             </p>

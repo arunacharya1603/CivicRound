@@ -70,7 +70,12 @@ export function DebateRoom({
       <div className="grid gap-3 border border-border bg-card p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-4">
         <div className="min-w-0">
           <p className="font-mono text-[9px] uppercase text-muted-foreground">{topic.category} / Live motion</p>
-          <h1 className="mt-1 truncate font-display text-lg font-semibold sm:text-2xl">{topic.statement}</h1>
+          <h1 className="mt-1 font-display text-lg font-semibold leading-tight [overflow-wrap:anywhere] sm:text-2xl">
+            {topic.statement}
+          </h1>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground [overflow-wrap:anywhere]">
+            {topic.context}
+          </p>
         </div>
         <div className="flex items-center justify-between gap-4 sm:justify-end">
           <div className="text-right">

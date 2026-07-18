@@ -12,11 +12,17 @@ import {
   LiveKitRoom,
   ParticipantTile,
   RoomAudioRenderer,
+  useConnectionState,
   useLocalParticipant,
   useRoomContext,
   useTracks,
 } from "@livekit/components-react";
-import { Track } from "livekit-client";
+import {
+  AudioPresets,
+  ConnectionState,
+  Track,
+  VideoPresets,
+} from "livekit-client";
 import {
   Camera,
   CameraOff,
@@ -31,6 +37,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { buildDebatePhases } from "@/features/debate/lib/debate-phases";
 import type {
+  DebateMediaPreferences,
+  DebateRoomOutcome,
   DebateSession,
   DebateSetup,
   DebateTopic,
@@ -88,20 +96,37 @@ export function LiveKitDebateRoom({
   session,
   setup,
   topic,
+  mediaPreferences,
   onLeave,
 }: {
   profile: GuestProfile;
   session: DebateSession;
   setup: DebateSetup;
   topic: DebateTopic;
-  onLeave: () => void;
+  mediaPreferences: DebateMediaPreferences;
+  onLeave: (outcome: DebateRoomOutcome) => void;
 }) {
   const leftRef = useRef(false);
-  const finishOnce = useCallback(() => {
+  const finishOnce = useCallback(
+    (outcome: DebateRoomOutcome) => {
+      if (leftRef.current) return;
+      leftRef.current = true;
+      onLeave(outcome);
+    },
+    [onLeave],
+  );
+
+  const leaveOnce = useCallback(async () => {
     if (leftRef.current) return;
     leftRef.current = true;
-    onLeave();
-  }, [onLeave]);
+    try {
+      await leaveDebateRoom(session.id);
+    } catch {
+      // A failed cleanup must not trap the participant on a broken room screen.
+    } finally {
+      onLeave("cancelled");
+    }
+  }, [onLeave, session.id]);
 
   const token = useQuery({
     queryKey: ["livekit-token", session.roomName, profile.id],
@@ -136,7 +161,7 @@ export function LiveKitDebateRoom({
           {token.error?.message ??
             "Return to matchmaking and request a fresh room."}
         </p>
-        <Button className="mt-6 rounded-xl" onClick={finishOnce}>
+        <Button className="mt-6 rounded-xl" onClick={() => void leaveOnce()}>
           Return
         </Button>
       </div>
@@ -148,9 +173,42 @@ export function LiveKitDebateRoom({
       token={token.data.token}
       serverUrl={token.data.serverUrl}
       connect
-      video
-      audio
-      onDisconnected={finishOnce}
+      video={
+        mediaPreferences.cameraEnabled
+          ? {
+              resolution: VideoPresets.h540.resolution,
+              facingMode: "user",
+            }
+          : false
+      }
+      audio={
+        mediaPreferences.microphoneEnabled
+          ? {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            }
+          : false
+      }
+      options={{
+        adaptiveStream: true,
+        dynacast: true,
+        publishDefaults: {
+          audioPreset: AudioPresets.speech,
+          dtx: true,
+          red: true,
+          forceStereo: false,
+          simulcast: true,
+          videoSimulcastLayers: [VideoPresets.h180, VideoPresets.h360],
+        },
+      }}
+      connectOptions={{
+        autoSubscribe: true,
+        maxRetries: 3,
+        websocketTimeout: 10_000,
+        peerConnectionTimeout: 10_000,
+      }}
+      onDisconnected={() => void leaveOnce()}
       className="min-h-[calc(100dvh-64px)]"
     >
       <LiveRoomSurface
@@ -173,10 +231,11 @@ function LiveRoomSurface({
   session: DebateSession;
   setup: DebateSetup;
   topic: DebateTopic;
-  onLeave: () => void;
+  onLeave: (outcome: DebateRoomOutcome) => void;
 }) {
   const [reportOpen, setReportOpen] = useState(false);
   const room = useRoomContext();
+  const connectionState = useConnectionState();
   const { localParticipant } = useLocalParticipant();
   const completionRef = useRef(false);
   const cancelledRef = useRef(false);
@@ -188,6 +247,7 @@ function LiveRoomSurface({
   const ready = useQuery({
     queryKey: ["debate-room-ready", session.id],
     queryFn: () => markDebateRoomReady(session.id),
+    enabled: connectionState === ConnectionState.Connected,
     retry: 2,
     staleTime: Infinity,
   });
@@ -208,11 +268,14 @@ function LiveRoomSurface({
   const finishRound = useCallback(async () => {
     if (completionRef.current) return;
     completionRef.current = true;
+    let outcome: DebateRoomOutcome = "cancelled";
     try {
-      await completeDebateRoom(session.id);
+      if (await completeDebateRoom(session.id)) {
+        outcome = "complete";
+      }
     } finally {
-      await room.disconnect();
-      onLeave();
+      onLeave(outcome);
+      void room.disconnect();
     }
   }, [onLeave, room, session.id]);
 
@@ -226,11 +289,22 @@ function LiveRoomSurface({
 
   useEffect(() => {
     if (
+      effectiveState?.status === "complete" &&
+      !completionRef.current
+    ) {
+      completionRef.current = true;
+      onLeave("complete");
+      void room.disconnect();
+      return;
+    }
+
+    if (
       effectiveState?.status === "cancelled" &&
       !cancelledRef.current
     ) {
       cancelledRef.current = true;
-      void room.disconnect().finally(onLeave);
+      onLeave("cancelled");
+      void room.disconnect();
     }
   }, [effectiveState?.status, onLeave, room]);
 
@@ -242,12 +316,19 @@ function LiveRoomSurface({
   const isYourTurn =
     effectiveState?.status === "live" &&
     timer.currentPhase?.speaker === "you";
+  const reconnecting =
+    connectionState === ConnectionState.Reconnecting ||
+    connectionState === ConnectionState.SignalReconnecting;
   const statusLabel =
-    effectiveState?.status === "ready"
-      ? "Waiting for opponent"
-      : timer.running
-        ? timer.currentPhase?.label
-        : "Closing round";
+    connectionState === ConnectionState.Connecting
+      ? "Connecting"
+      : reconnecting
+        ? "Reconnecting"
+        : effectiveState?.status === "ready"
+          ? "Waiting for opponent"
+          : timer.running
+            ? timer.currentPhase?.label
+            : "Debate complete";
   const totalSeconds =
     effectiveState?.status === "ready"
       ? phases[0]?.duration ?? 0
@@ -261,8 +342,8 @@ function LiveRoomSurface({
     try {
       await leaveDebateRoom(session.id);
     } finally {
-      await room.disconnect();
-      onLeave();
+      onLeave("cancelled");
+      void room.disconnect();
     }
   };
 
@@ -291,9 +372,12 @@ function LiveRoomSurface({
           <p className="font-mono text-[9px] uppercase tracking-wider text-primary/70">
             {topic.category} / Authorized live room
           </p>
-          <h1 className="mt-1 truncate font-display text-lg font-bold sm:text-2xl">
+          <h1 className="mt-1 font-display text-lg font-bold leading-tight [overflow-wrap:anywhere] sm:text-2xl">
             {topic.statement}
           </h1>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground [overflow-wrap:anywhere]">
+            {topic.context}
+          </p>
         </div>
         <div className="flex items-center justify-between gap-4 sm:justify-end">
           <div className="text-right">
@@ -308,6 +392,7 @@ function LiveRoomSurface({
             variant="ghost"
             size="sm"
             onClick={() => setReportOpen(true)}
+            aria-label="Report opponent"
             className="text-muted-foreground hover:text-destructive rounded-xl"
           >
             <Flag className="size-4" />
@@ -343,7 +428,10 @@ function LiveRoomSurface({
                   : "border-border/30 opacity-70",
               )}
             >
-              <ParticipantTile trackRef={trackRef} className="h-full w-full" />
+              <ParticipantTile
+                trackRef={trackRef}
+                className="civic-participant-tile h-full w-full"
+              />
               <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-black/70 backdrop-blur-sm px-3 py-1 font-mono text-[9px] uppercase tracking-wider">
                 <span
                   className={cn(
@@ -429,16 +517,10 @@ function LiveControls({
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } =
     useLocalParticipant();
 
-  const prevCanSpeakRef = useRef(canSpeak);
-
   useEffect(() => {
-    if (canSpeak && !prevCanSpeakRef.current && !isMicrophoneEnabled) {
-      void localParticipant.setMicrophoneEnabled(true);
-    }
     if (!canSpeak && isMicrophoneEnabled) {
       void localParticipant.setMicrophoneEnabled(false);
     }
-    prevCanSpeakRef.current = canSpeak;
   }, [canSpeak, isMicrophoneEnabled, localParticipant]);
 
   return (
@@ -454,9 +536,12 @@ function LiveControls({
           waiting
             ? "Microphone unlocks when the round starts"
             : canSpeak
-              ? "Toggle microphone"
+              ? isMicrophoneEnabled
+                ? "Mute microphone"
+                : "Unmute microphone"
               : "Microphone locked outside your turn"
         }
+        aria-pressed={isMicrophoneEnabled}
         className="rounded-full size-9"
       >
         {isMicrophoneEnabled ? <Mic /> : <MicOff />}
@@ -465,7 +550,8 @@ function LiveControls({
         size="icon"
         variant={isCameraEnabled ? "ghost" : "destructive"}
         onClick={() => localParticipant.setCameraEnabled(!isCameraEnabled)}
-        aria-label="Toggle camera"
+        aria-label={isCameraEnabled ? "Turn camera off" : "Turn camera on"}
+        aria-pressed={isCameraEnabled}
         className="rounded-full size-9"
       >
         {isCameraEnabled ? <Camera /> : <CameraOff />}

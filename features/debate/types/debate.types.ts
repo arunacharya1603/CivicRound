@@ -10,6 +10,12 @@ export type DebateDuration = 60 | 120;
 export type DebateStance = "support" | "challenge";
 export type SpeakerOrder = 1 | 2;
 export type DebateRoomStatus = "ready" | "live" | "complete" | "cancelled";
+export type DebateRoomOutcome = "complete" | "cancelled";
+
+export interface DebateMediaPreferences {
+  cameraEnabled: boolean;
+  microphoneEnabled: boolean;
+}
 
 export interface GuestProfile {
   id: string;

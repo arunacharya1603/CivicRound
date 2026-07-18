@@ -6,7 +6,7 @@ import type {
 
 interface AbsolutePhase {
   id: string;
-  action: "opening" | "response";
+  action: "opening" | "closing";
   speakerOrder: SpeakerOrder;
   duration: number;
 }
@@ -24,8 +24,8 @@ export function buildDebatePhases(
       : [
           { id: "speaker-one-opening", action: "opening", speakerOrder: 1, duration: 40 },
           { id: "speaker-two-opening", action: "opening", speakerOrder: 2, duration: 40 },
-          { id: "speaker-one-response", action: "response", speakerOrder: 1, duration: 20 },
-          { id: "speaker-two-response", action: "response", speakerOrder: 2, duration: 20 },
+          { id: "speaker-one-closing", action: "closing", speakerOrder: 1, duration: 20 },
+          { id: "speaker-two-closing", action: "closing", speakerOrder: 2, duration: 20 },
         ];
 
   return phases.map((phase) => {
