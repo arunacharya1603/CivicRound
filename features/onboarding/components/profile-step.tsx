@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import {
@@ -11,9 +12,10 @@ import {
   X,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { RulesDialog } from "@/components/rules/rules-dialog";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { createGuestIdentity } from "@/features/auth/services/guest-auth.service";
 import type { GuestProfile } from "@/features/debate/types/debate.types";
 import { cn } from "@/lib/utils";
@@ -59,137 +61,228 @@ function NewProfileStep({
 
   const canContinue =
     displayName.trim().length >= 2 && isAdult && acceptedRules;
+  const remainingSteps =
+    Number(displayName.trim().length < 2) +
+    Number(!isAdult) +
+    Number(!acceptedRules);
 
   return (
-    <section className="screen-enter relative isolate flex min-h-[calc(100svh-3rem)] items-center justify-center overflow-hidden px-4 py-4 text-center sm:px-6 sm:py-6 lg:min-h-[calc(100svh-3.5rem)] lg:py-8">
+    <section className="screen-enter relative isolate min-h-[calc(100svh-4rem)] overflow-hidden bg-[#0b0b10] px-5 py-5 text-[#f5f3fa] sm:px-8 sm:py-10 lg:min-h-[calc(100svh-4.5rem)] lg:px-10 lg:py-0">
       <div
-        className="pointer-events-none absolute left-1/2 top-[42%] -z-10 h-[38rem] w-[38rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/[0.025] blur-3xl sm:h-[48rem] sm:w-[48rem]"
+        className="absolute inset-y-0 right-0 -z-10 hidden w-[43%] border-l border-[#2a2933] bg-[#111118] lg:block"
         aria-hidden="true"
       />
 
-      <div className="relative w-full max-w-[28rem]">
-        <div className="relative mx-auto mb-4 grid size-20 place-items-center sm:mb-6 sm:size-24 lg:size-28">
-          <span className="absolute inset-0 rounded-full border border-primary/10" />
-          <span className="absolute inset-2 rounded-full border border-dashed border-primary/20 [animation:opponent-search-orbit_12s_linear_infinite]" />
-          <span className="absolute inset-4 rounded-full bg-primary/[0.08] blur-xl" />
-          <span className="neon-ring relative grid size-14 place-items-center rounded-full bg-[#081216]/90 sm:size-16 lg:size-[4.5rem]">
-            <Fingerprint className="size-6 text-primary sm:size-7 lg:size-8" />
-          </span>
-        </div>
-
-        <div className="mx-auto mb-3 inline-flex items-center gap-1.5 rounded-full border border-white/[0.06] bg-white/[0.025] px-3 py-1 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground sm:mb-4">
-          <ShieldCheck className="size-3 text-secondary" />
-          Private by design
-        </div>
-
-        <h1 className="text-balance font-display text-3xl font-bold leading-[1.05] tracking-[-0.04em] sm:text-4xl lg:text-5xl">
-          Who are you today?
-        </h1>
-        <p className="mx-auto mt-2 max-w-sm text-sm leading-5 text-muted-foreground sm:mt-3 sm:text-[15px]">
-          Choose a debate name. Your real identity stays out of the room.
-        </p>
-
-        <form
-          className="mt-5 w-full sm:mt-7"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (canContinue) createGuest.mutate(displayName);
-          }}
-        >
-          <label htmlFor="display-name" className="sr-only">
-            Debate name
-          </label>
-          <div className="relative">
-            <Input
-              id="display-name"
-              value={displayName}
-              onChange={(event) => setDisplayName(event.target.value)}
-              placeholder="Your debate name"
-              maxLength={32}
-              autoComplete="nickname"
-              autoFocus
-              className="h-13 rounded-full border-white/10 bg-white/[0.045] pl-6 pr-16 text-center text-base shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] backdrop-blur-sm transition-all duration-300 placeholder:text-muted-foreground/55 focus:border-primary/40 focus:bg-white/[0.06] focus:ring-2 focus:ring-primary/15 sm:h-14"
-            />
-            <span className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 font-mono text-[9px] text-muted-foreground/65">
-              {displayName.length}/32
-            </span>
+      <div className="mx-auto grid min-h-[calc(100svh-7.5rem)] w-full max-w-[82rem] items-center gap-5 sm:min-h-[calc(100svh-9rem)] lg:min-h-[calc(100svh-4.5rem)] lg:grid-cols-[minmax(0,1.08fr)_minmax(27rem,0.78fr)] lg:gap-0">
+        <div className="lg:pr-16 xl:pr-24">
+          <div className="flex items-center gap-3 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.18em] text-[#a894ff]">
+            <span className="h-px w-8 bg-[#8066ff]" aria-hidden="true" />
+            Live, one-to-one debate
           </div>
 
-          <div className="mt-3 overflow-hidden rounded-[1.25rem] border border-white/[0.07] bg-white/[0.025] p-1 text-left shadow-[0_16px_50px_rgba(0,0,0,0.18)] sm:mt-4">
-            <div className="flex min-h-14 items-center justify-between gap-4 rounded-2xl px-3.5 py-2.5 transition-colors hover:bg-white/[0.025] sm:px-4">
-              <span className="min-w-0">
-                <span className="block text-sm font-medium text-foreground">
-                  I am 18 or older
-                </span>
-                <span className="mt-0.5 block text-[11px] text-muted-foreground">
-                  Required for live debate rooms
-                </span>
-              </span>
-              <ToggleSwitch
-                checked={isAdult}
-                onToggle={() => setIsAdult((value) => !value)}
-                label="Confirm that you are 18 or older"
-              />
-            </div>
+          <h1 className="mt-3 max-w-[42rem] text-balance font-editorial text-[2.35rem] font-semibold leading-[0.93] sm:mt-5 sm:text-[3.5rem] lg:text-[clamp(3rem,6vw,5.75rem)] lg:leading-[0.92] tracking-[-0.045em] text-[#f5f3fa]">
+            Better arguments start with equal time.
+          </h1>
 
-            <div className="mx-3 h-px bg-white/[0.06]" />
+          <p className="mt-5 hidden max-w-[37rem] text-[15px] sm:block leading-6 text-[#aaa6b5] sm:mt-7 sm:text-lg sm:leading-8">
+            Choose a name, take a side, and meet someone ready to disagree
+            well. No profile building. No public follower count.
+          </p>
 
-            <div className="flex min-h-14 items-center justify-between gap-4 rounded-2xl px-3.5 py-2.5 transition-colors hover:bg-white/[0.025] sm:px-4">
-              <span className="min-w-0">
-                <span className="block text-sm font-medium text-foreground">
-                  I accept the{" "}
-                  <RulesDialog
-                    trigger={
-                      <button
-                        type="button"
-                        className="text-primary underline decoration-primary/40 underline-offset-4 transition-colors hover:text-primary/80"
-                      >
-                        arena rules
-                      </button>
-                    }
-                  />
-                </span>
-                <span className="mt-0.5 block text-[11px] text-muted-foreground">
-                  Keep it civil, focused, and safe
-                </span>
-              </span>
-              <ToggleSwitch
-                checked={acceptedRules}
-                onToggle={() => setAcceptedRules((value) => !value)}
-                label="Accept the arena rules"
-              />
-            </div>
-          </div>
-
-          {createGuest.error ? (
-            <p className="mt-3 text-sm text-destructive" role="alert">
-              Could not create identity. Please try again.
+          <div className="mt-7 hidden border-t border-[#2f2e38] pt-5 sm:mt-10 sm:block sm:pt-6">
+            <p className="text-xs font-semibold text-[#f5f3fa]">
+              A private seat for one conversation.
             </p>
-          ) : null}
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+              {SAFETY_POINTS.map(({ label, icon: Icon }) => (
+                <span
+                  key={label}
+                  className="inline-flex items-center gap-1.5 text-xs text-[#9d99a8]"
+                >
+                  <Icon className="size-3.5 text-[#a894ff]" strokeWidth={1.8} />
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
 
-          <Button
-            type="submit"
-            size="lg"
-            disabled={!canContinue || createGuest.isPending}
-            className={cn(
-              "mt-4 h-12 w-full rounded-full text-sm font-semibold transition-all duration-300 sm:mt-5 sm:h-13 sm:text-base",
-              canContinue
-                ? "border-primary/60 bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-[0_0_28px_rgba(0,240,255,0.18)] hover:border-primary hover:brightness-110 hover:shadow-[0_0_36px_rgba(0,240,255,0.3)]"
-                : "border-white/[0.06] bg-white/[0.055] text-muted-foreground",
-            )}
-          >
-            {createGuest.isPending ? "Preparing your seat..." : "Enter the arena"}
-            <ArrowRight className="ml-1 size-4" />
-          </Button>
-        </form>
+        <div className="lg:pl-14 xl:pl-20">
+          <div className="mx-auto w-full max-w-[31rem]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#a894ff]">
+              Private entry
+            </p>
+            <h2 className="mt-1.5 font-editorial text-[2rem] font-semibold leading-none tracking-[-0.035em] text-[#f5f3fa] sm:mt-2 sm:text-[3rem]">
+              Join the next round
+            </h2>
+            <p className="mt-3 hidden max-w-md text-sm leading-6 sm:block text-[#9d99a8]">
+              Your debate name stays in this browser session and is shown only
+              to your opponent.
+            </p>
 
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[10px] text-muted-foreground/65 sm:mt-5 sm:text-[11px]">
-          {SAFETY_POINTS.map(({ label, icon: Icon }) => (
-            <span key={label} className="flex items-center gap-1.5">
-              <Icon className="size-3" />
-              {label}
-            </span>
-          ))}
+            <form
+              className="mt-4 sm:mt-6"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (canContinue) createGuest.mutate(displayName);
+              }}
+            >
+              <div className="flex items-end justify-between gap-4">
+                <label
+                  htmlFor="display-name"
+                  className="text-sm font-semibold text-[#f5f3fa]"
+                >
+                  Debate name
+                </label>
+                <span className="text-[11px] tabular-nums text-[#8e8999]">
+                  {displayName.length}/32
+                </span>
+              </div>
+
+              <Input
+                id="display-name"
+                value={displayName}
+                onChange={(event) => setDisplayName(event.target.value)}
+                placeholder="e.g. CivicVoice"
+                maxLength={32}
+                minLength={2}
+                autoComplete="nickname"
+                autoFocus
+                aria-describedby="display-name-hint"
+                className="mt-2 h-12 rounded-lg sm:h-13 border-[#3b3946] bg-[#15151d] px-4 text-base text-[#f5f3fa] shadow-none placeholder:text-[#6f6b78] focus-visible:border-[#8066ff] focus-visible:ring-[#8066ff]/20"
+              />
+              <p
+                id="display-name-hint"
+                className="mt-2 text-xs leading-5 text-[#8e8999]"
+              >
+                Use a nickname, not your legal name.
+              </p>
+
+              <fieldset className="mt-4 border-y border-[#2f2e38] sm:mt-5">
+                <legend className="sr-only">Required confirmations</legend>
+
+                <div className="flex items-start gap-3.5 py-3 sm:py-4">
+                  <Checkbox
+                    id="adult-confirmation"
+                    type="button"
+                    checked={isAdult}
+                    onCheckedChange={(checked) =>
+                      setIsAdult(checked === true)
+                    }
+                    aria-label="Confirm that you are 18 or older"
+                    className="mt-0.5 size-5 rounded-[0.3rem] border-[#5a5664] bg-transparent text-white focus-visible:ring-[#8066ff]/35 data-[state=checked]:border-[#8066ff] data-[state=checked]:bg-[#8066ff]"
+                  />
+                  <div className="min-w-0">
+                    <label
+                      htmlFor="adult-confirmation"
+                      className="block cursor-pointer text-sm font-semibold text-[#f5f3fa]"
+                    >
+                      I am 18 or older
+                    </label>
+                    <p className="mt-0.5 text-xs leading-5 text-[#8e8999]">
+                      Required to participate in a live debate.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3.5 border-t border-[#2f2e38] py-3 sm:py-4">
+                  <Checkbox
+                    id="rules-confirmation"
+                    type="button"
+                    checked={acceptedRules}
+                    onCheckedChange={(checked) =>
+                      setAcceptedRules(checked === true)
+                    }
+                    aria-label="Agree to keep the debate civil"
+                    className="mt-0.5 size-5 rounded-[0.3rem] border-[#5a5664] bg-transparent text-white focus-visible:ring-[#8066ff]/35 data-[state=checked]:border-[#8066ff] data-[state=checked]:bg-[#8066ff]"
+                  />
+                  <div className="min-w-0">
+                    <label
+                      htmlFor="rules-confirmation"
+                      className="block cursor-pointer text-sm font-semibold text-[#f5f3fa]"
+                    >
+                      I agree to keep the debate civil
+                    </label>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs leading-5 text-[#8e8999]">
+                      <span>Required for every round.</span>
+                      <RulesDialog
+                        trigger={
+                          <button
+                            type="button"
+                            className="font-semibold text-[#a894ff] underline decoration-[#a894ff]/35 underline-offset-4 transition-colors hover:text-[#c3b7ff]"
+                          >
+                            Read the rules
+                          </button>
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              </fieldset>
+
+              {createGuest.error ? (
+                <p className="mt-3 text-sm text-[#ff766d]" role="alert">
+                  Could not create your debate identity. Please try again.
+                </p>
+              ) : null}
+
+              <div className="mt-3 flex items-center justify-between gap-4 sm:mt-4">
+                <p
+                  className="flex items-center gap-2 text-xs text-[#9d99a8]"
+                  aria-live="polite"
+                >
+                  <span
+                    className={cn(
+                      "size-1.5 rounded-full",
+                      canContinue ? "bg-[#52c48d]" : "bg-[#716d7a]",
+                    )}
+                    aria-hidden="true"
+                  />
+                  {canContinue
+                    ? "Ready to enter."
+                    : `${remainingSteps} ${remainingSteps === 1 ? "item" : "items"} left.`}
+                </p>
+                <span className="inline-flex items-center gap-1.5 text-[11px] text-[#8e8999]">
+                  <LockKeyhole className="size-3.5" />
+                  Private session
+                </span>
+              </div>
+
+              <Button
+                type="submit"
+                size="lg"
+                disabled={!canContinue || createGuest.isPending}
+                className={cn(
+                  "mt-2.5 h-12 w-full rounded-lg border text-sm sm:h-13 font-semibold shadow-none transition-all duration-200",
+                  canContinue
+                    ? "border-[#8066ff] bg-[#8066ff] text-white shadow-[0_10px_30px_rgba(128,102,255,0.18)] hover:-translate-y-px hover:border-[#8f77ff] hover:bg-[#8f77ff] hover:shadow-[0_14px_36px_rgba(128,102,255,0.26)] active:translate-y-0"
+                    : "border-[#393052] bg-[#251f36] text-[#8e7fc2]",
+                  "disabled:border-[#393052] disabled:bg-[#251f36] disabled:text-[#8e7fc2]",
+                )}
+              >
+                {createGuest.isPending ? "Preparing your seat..." : "Enter the arena"}
+                <ArrowRight className="ml-1 size-4" />
+              </Button>
+            </form>
+
+            <nav
+              aria-label="Legal links"
+              className="mt-3 flex items-center justify-end gap-4 sm:mt-5 text-xs text-[#8e8999]"
+            >
+              <Link
+                className="transition-colors hover:text-[#f5f3fa]"
+                href="/privacy"
+              >
+                Privacy
+              </Link>
+              <Link
+                className="transition-colors hover:text-[#f5f3fa]"
+                href="/terms"
+              >
+                Terms
+              </Link>
+            </nav>
+          </div>
         </div>
       </div>
     </section>
@@ -204,91 +297,51 @@ function SessionProfileStep({
   onContinue: () => void;
 }) {
   return (
-    <section className="screen-enter relative isolate flex min-h-[calc(100svh-3rem)] items-center justify-center overflow-hidden px-4 py-4 text-center sm:px-6 sm:py-6 lg:min-h-[calc(100svh-3.5rem)] lg:py-8">
-      <div
-        className="pointer-events-none absolute left-1/2 top-[44%] -z-10 size-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/[0.025] blur-3xl sm:size-[44rem]"
-        aria-hidden="true"
-      />
-
-      <div className="w-full max-w-[26rem]">
-        <div className="mx-auto grid size-20 place-items-center rounded-full border border-secondary/20 bg-[radial-gradient(circle_at_35%_30%,rgba(56,232,198,0.2),rgba(56,232,198,0.05)_58%,rgba(0,0,0,0.2))] font-display text-3xl font-bold text-secondary shadow-[0_20px_60px_rgba(0,0,0,0.32)] sm:size-24 sm:text-4xl">
+    <section className="screen-enter flex min-h-[calc(100svh-4rem)] items-center justify-center bg-[#0b0b10] px-5 py-10 text-[#f5f3fa] lg:min-h-[calc(100svh-4.5rem)]">
+      <div className="w-full max-w-[35rem]">
+        <span className="grid size-12 place-items-center rounded-full bg-[#8066ff] font-display text-lg font-semibold text-white">
           {profile.displayName.slice(0, 1).toUpperCase()}
-        </div>
+        </span>
 
-        <div className="mx-auto mt-5 inline-flex items-center gap-2 rounded-full border border-white/[0.07] bg-white/[0.025] px-3 py-1.5 font-mono text-[8px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:text-[9px]">
-          <LockKeyhole className="size-3 text-primary" />
-          Session identity
-        </div>
-
-        <h1 className="mt-4 font-display text-3xl font-bold tracking-[-0.04em] sm:text-4xl">
-          Identity locked in
+        <p className="mt-7 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#a894ff]">
+          Private identity active
+        </p>
+        <h1 className="mt-2 text-balance font-editorial text-5xl font-semibold leading-[0.98] tracking-[-0.04em] sm:text-6xl">
+          Welcome back, {profile.displayName}.
         </h1>
-        <p className="mx-auto mt-2 max-w-sm text-sm leading-5 text-muted-foreground">
-          Your debate name stays fixed until this browser session ends.
+        <p className="mt-4 max-w-lg text-base leading-7 text-[#9d99a8]">
+          Your debate name is ready for this browser session. Continue to choose
+          a motion and take a side.
         </p>
 
-        <div className="mt-6 rounded-[1.4rem] border border-white/[0.08] bg-white/[0.025] p-4 text-left shadow-[0_20px_65px_rgba(0,0,0,0.24)]">
-          <p className="font-mono text-[8px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/55">
-            Debate name
-          </p>
-          <div className="mt-2 flex items-center justify-between gap-4">
-            <p className="min-w-0 truncate text-lg font-semibold text-foreground">
+        <div className="mt-8 flex items-center justify-between gap-4 border-y border-[#2f2e38] py-4">
+          <span>
+            <span className="block text-xs text-[#8e8999]">Debate name</span>
+            <span className="mt-1 block max-w-[20rem] truncate text-lg font-semibold">
               {profile.displayName}
-            </p>
-            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-secondary/[0.09] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-secondary">
-              <ShieldCheck className="size-3" />
-              Active
             </span>
-          </div>
+          </span>
+          <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold text-[#52c48d]">
+            <ShieldCheck className="size-4" />
+            Active
+          </span>
         </div>
 
         <Button
           type="button"
           size="lg"
           onClick={onContinue}
-          className="mt-4 h-12 w-full rounded-full border-primary/60 bg-gradient-to-r from-primary to-secondary font-semibold text-primary-foreground shadow-[0_0_28px_rgba(0,240,255,0.18)] transition-all duration-300 hover:brightness-110 hover:shadow-[0_0_36px_rgba(0,240,255,0.3)] sm:h-13"
+          className="mt-5 h-13 w-full rounded-lg border-[#8066ff] bg-[#8066ff] text-sm font-semibold text-white shadow-[0_10px_30px_rgba(128,102,255,0.18)] transition-all hover:-translate-y-px hover:border-[#8f77ff] hover:bg-[#8f77ff] hover:shadow-[0_14px_36px_rgba(128,102,255,0.26)] active:translate-y-0"
         >
           Continue as {profile.displayName}
           <ArrowRight className="ml-1 size-4" />
         </Button>
 
-        <p className="mt-4 text-[10px] leading-4 text-muted-foreground/60">
-          Refreshing or moving between setup steps will not ask for another name.
+        <p className="mt-4 flex items-center gap-2 text-xs leading-5 text-[#8e8999]">
+          <LockKeyhole className="size-3.5" />
+          This identity ends when your browser session ends.
         </p>
       </div>
     </section>
-  );
-}
-
-function ToggleSwitch({
-  checked,
-  onToggle,
-  label,
-}: {
-  checked: boolean;
-  onToggle: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      onClick={onToggle}
-      className={cn(
-        "relative h-7 w-12 shrink-0 rounded-full border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-        checked
-          ? "border-primary/60 bg-primary shadow-[0_0_14px_rgba(0,240,255,0.18)]"
-          : "border-white/10 bg-white/[0.08]",
-      )}
-    >
-      <span
-        className={cn(
-          "absolute left-0.5 top-0.5 size-[1.375rem] rounded-full bg-white shadow-sm transition-transform duration-200",
-          checked && "translate-x-5",
-        )}
-      />
-    </button>
   );
 }

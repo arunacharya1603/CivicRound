@@ -81,8 +81,8 @@ export function ReportDialog({
                   type="button"
                   onClick={() => setReason(item.id)}
                   className={cn(
-                    "flex items-center gap-3 rounded-sm border border-border bg-background px-3 py-3 text-left text-sm",
-                    reason === item.id && "border-primary bg-primary/10",
+                    "flex items-center gap-3 rounded-lg border border-white/[0.09] bg-[#15151d] px-3 py-3 text-left text-sm",
+                    reason === item.id && "border-primary/60 bg-primary/10",
                   )}
                 >
                   <span
@@ -111,7 +111,7 @@ export function ReportDialog({
                 onChange={(event) => setDetails(event.target.value)}
                 maxLength={500}
                 rows={4}
-                className="mt-2 w-full resize-none rounded-sm border border-input bg-background p-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                className="mt-2 w-full resize-none rounded-lg border border-white/[0.1] bg-[#15151d] p-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                 placeholder="What happened?"
               />
             </div>

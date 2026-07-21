@@ -36,13 +36,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { buildDebatePhases } from "@/features/debate/lib/debate-phases";
+import { useTurnTranscription } from "@/features/debate/hooks/use-turn-transcription";
+import { registerJudgeConsent } from "@/features/debate/services/judge.service";
 import type {
   DebateMediaPreferences,
   DebateRoomOutcome,
   DebateSession,
   DebateSetup,
   DebateTopic,
-  GuestProfile,
+  ParticipantProfile,
 } from "@/features/debate/types/debate.types";
 import { ReportDialog } from "@/features/reporting/components/report-dialog";
 import {
@@ -99,7 +101,7 @@ export function LiveKitDebateRoom({
   mediaPreferences,
   onLeave,
 }: {
-  profile: GuestProfile;
+  profile: ParticipantProfile;
   session: DebateSession;
   setup: DebateSetup;
   topic: DebateTopic;
@@ -120,13 +122,13 @@ export function LiveKitDebateRoom({
     if (leftRef.current) return;
     leftRef.current = true;
     try {
-      await leaveDebateRoom(session.id);
+      await leaveDebateRoom(session.id, setup.isRated);
     } catch {
       // A failed cleanup must not trap the participant on a broken room screen.
     } finally {
       onLeave("cancelled");
     }
-  }, [onLeave, session.id]);
+  }, [onLeave, session.id, setup.isRated]);
 
   const token = useQuery({
     queryKey: ["livekit-token", session.roomName, profile.id],
@@ -137,11 +139,11 @@ export function LiveKitDebateRoom({
 
   if (token.isPending) {
     return (
-      <div className="grid min-h-[calc(100dvh-64px)] place-items-center">
+      <div className="grid min-h-[calc(100dvh-3.5rem)] lg:min-h-[calc(100dvh-4rem)] place-items-center">
         <div className="text-center">
           <div className="relative mx-auto size-16">
             <div className="absolute inset-0 rounded-full border border-primary/20 animate-ping" />
-            <LoaderCircle className="absolute inset-0 m-auto size-8 animate-spin text-primary drop-shadow-[0_0_8px_rgba(0,240,255,0.4)]" />
+            <LoaderCircle className="absolute inset-0 m-auto size-8 animate-spin text-primary drop-shadow-[0_0_8px_rgba(128,102,255,0.4)]" />
           </div>
           <p className="mt-4 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
             Opening authorized room
@@ -209,12 +211,13 @@ export function LiveKitDebateRoom({
         peerConnectionTimeout: 10_000,
       }}
       onDisconnected={() => void leaveOnce()}
-      className="min-h-[calc(100dvh-64px)]"
+      className="min-h-[calc(100dvh-3.5rem)] lg:min-h-[calc(100dvh-4rem)]"
     >
       <LiveRoomSurface
         session={session}
         setup={setup}
         topic={topic}
+        judgeConsentEnabled={mediaPreferences.judgeConsent}
         onLeave={finishOnce}
       />
       <RoomAudioRenderer />
@@ -226,28 +229,42 @@ function LiveRoomSurface({
   session,
   setup,
   topic,
+  judgeConsentEnabled,
   onLeave,
 }: {
   session: DebateSession;
   setup: DebateSetup;
   topic: DebateTopic;
+  judgeConsentEnabled: boolean;
   onLeave: (outcome: DebateRoomOutcome) => void;
 }) {
   const [reportOpen, setReportOpen] = useState(false);
   const room = useRoomContext();
   const connectionState = useConnectionState();
-  const { localParticipant } = useLocalParticipant();
+  const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
   const completionRef = useRef(false);
   const cancelledRef = useRef(false);
+  const flushTranscriptRef = useRef<() => Promise<void>>(async () => {});
   const phases = useMemo(
     () => buildDebatePhases(setup.duration, session.speakerOrder),
     [session.speakerOrder, setup.duration],
   );
 
+  const judgeConsent = useQuery({
+    queryKey: ["debate-judge-consent", session.id],
+    queryFn: () => registerJudgeConsent(session.id, judgeConsentEnabled),
+    enabled:
+      connectionState === ConnectionState.Connected && judgeConsentEnabled,
+    retry: 2,
+    staleTime: Infinity,
+  });
+
   const ready = useQuery({
     queryKey: ["debate-room-ready", session.id],
     queryFn: () => markDebateRoomReady(session.id),
-    enabled: connectionState === ConnectionState.Connected,
+    enabled:
+      connectionState === ConnectionState.Connected &&
+      (!judgeConsentEnabled || judgeConsent.isSuccess),
     retry: 2,
     staleTime: Infinity,
   });
@@ -270,6 +287,7 @@ function LiveRoomSurface({
     completionRef.current = true;
     let outcome: DebateRoomOutcome = "cancelled";
     try {
+      await flushTranscriptRef.current();
       if (await completeDebateRoom(session.id)) {
         outcome = "complete";
       }
@@ -293,8 +311,11 @@ function LiveRoomSurface({
       !completionRef.current
     ) {
       completionRef.current = true;
-      onLeave("complete");
-      void room.disconnect();
+      void (async () => {
+        await flushTranscriptRef.current();
+        onLeave("complete");
+        await room.disconnect();
+      })();
       return;
     }
 
@@ -316,6 +337,22 @@ function LiveRoomSurface({
   const isYourTurn =
     effectiveState?.status === "live" &&
     timer.currentPhase?.speaker === "you";
+  const transcription = useTurnTranscription({
+    enabled: judgeConsentEnabled && judgeConsent.isSuccess,
+    roomId: session.id,
+    roomStatus: effectiveState?.status,
+    localParticipant,
+    isMicrophoneEnabled,
+    isYourTurn,
+    phaseId: timer.currentPhase?.id ?? null,
+    phaseIndex: timer.phaseIndex,
+    phaseDuration: timer.currentPhase?.duration ?? 0,
+  });
+
+  useEffect(() => {
+    flushTranscriptRef.current = transcription.flush;
+  }, [transcription.flush]);
+
   const reconnecting =
     connectionState === ConnectionState.Reconnecting ||
     connectionState === ConnectionState.SignalReconnecting;
@@ -340,21 +377,21 @@ function LiveRoomSurface({
     if (completionRef.current) return;
     completionRef.current = true;
     try {
-      await leaveDebateRoom(session.id);
+      await leaveDebateRoom(session.id, setup.isRated);
     } finally {
       onLeave("cancelled");
       void room.disconnect();
     }
   };
 
-  if (ready.error || roomState.error) {
+  if (judgeConsent.error || ready.error || roomState.error) {
     return (
       <div className="mx-auto max-w-xl px-4 py-20 text-center">
         <h1 className="font-display text-3xl font-bold">
           Room synchronization failed.
         </h1>
         <p className="mt-3 text-muted-foreground">
-          {(ready.error ?? roomState.error)?.message}
+          {(judgeConsent.error ?? ready.error ?? roomState.error)?.message}
         </p>
         <Button className="mt-6 rounded-xl" onClick={() => void handleLeave()}>
           Return
@@ -364,14 +401,35 @@ function LiveRoomSurface({
   }
 
   return (
-    <section className="mx-auto max-w-[1280px] px-3 py-4 sm:px-6 lg:px-8">
+    <section className="mx-auto w-full max-w-[1280px] px-3 py-3 sm:px-6 sm:py-4 lg:px-8">
       {/* ─── Topic Header Bar ─── */}
-      <div className="glass-panel grid gap-3 rounded-2xl p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-4 relative overflow-hidden">
-        <div className="absolute left-0 top-0 h-[2px] w-full bg-gradient-to-r from-transparent via-primary to-transparent opacity-40" />
-        <div className="min-w-0">
-          <p className="font-mono text-[9px] uppercase tracking-wider text-primary/70">
-            {topic.category} / Authorized live room
-          </p>
+      <div className="relative grid gap-3 overflow-hidden rounded-xl border border-white/[0.09] bg-[#111118] p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-4">        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-mono text-[9px] uppercase tracking-wider text-primary/70">
+              {topic.category} / Authorized live room
+            </p>
+            {judgeConsentEnabled ? (
+              <span
+                title={transcription.errorMessage ?? undefined}
+                className={cn(
+                  "border px-2 py-0.5 font-mono text-[8px] uppercase tracking-[0.1em]",
+                  transcription.status === "error"
+                    ? "border-destructive/40 text-destructive"
+                    : "border-emerald-400/30 text-emerald-300",
+                )}
+              >
+                {transcription.status === "recording"
+                  ? "AI transcript recording"
+                  : transcription.status === "uploading"
+                    ? "Securing transcript"
+                    : transcription.status === "secured"
+                      ? "Transcript secured"
+                      : transcription.status === "error"
+                        ? "Transcript issue"
+                        : "AI judge consented"}
+              </span>
+            ) : null}
+          </div>
           <h1 className="mt-1 font-display text-lg font-bold leading-tight [overflow-wrap:anywhere] sm:text-2xl">
             {topic.statement}
           </h1>
@@ -384,7 +442,7 @@ function LiveRoomSurface({
             <p className="font-mono text-[9px] uppercase tracking-wider text-accent">
               {ready.isPending ? "Registering presence" : statusLabel}
             </p>
-            <p className="font-mono text-3xl font-bold tabular-nums text-foreground drop-shadow-[0_0_8px_rgba(0,240,255,0.15)]">
+            <p className="font-mono text-3xl font-bold tabular-nums text-foreground">
               {minutesStr}:{secondsStr}
             </p>
           </div>
@@ -404,7 +462,7 @@ function LiveRoomSurface({
       {/* ─── Phase Progress Bar ─── */}
       <Progress
         value={timer.phaseProgress}
-        className="h-1 rounded-none bg-border/50 [&>div]:bg-gradient-to-r [&>div]:from-primary [&>div]:to-accent"
+        className="mt-[-1px] h-1 rounded-none bg-border/60 [&>div]:bg-primary"
       />
 
       {/* ─── Video Grid ─── */}
@@ -420,11 +478,11 @@ function LiveRoomSurface({
             <div
               key={trackRef.participant.identity}
               className={cn(
-                "relative aspect-video overflow-hidden rounded-2xl border bg-black transition-all duration-500",
+                "relative aspect-video overflow-hidden rounded-xl border bg-black transition-all duration-500",
                 active
                   ? isLocal
-                    ? "border-primary/40 shadow-[0_0_24px_rgba(0,240,255,0.2)] ring-1 ring-primary/30"
-                    : "border-accent/40 shadow-[0_0_24px_rgba(255,215,0,0.2)] ring-1 ring-accent/30"
+                    ? "border-primary/40 shadow-[0_0_24px_rgba(128,102,255,0.2)] ring-1 ring-primary/30"
+                    : "border-accent/40 shadow-[0_0_24px_rgba(195,183,255,0.2)] ring-1 ring-accent/30"
                   : "border-border/30 opacity-70",
               )}
             >
@@ -437,7 +495,7 @@ function LiveRoomSurface({
                   className={cn(
                     "size-1.5 rounded-full",
                     active
-                      ? "live-dot bg-primary shadow-[0_0_6px_rgba(0,240,255,0.5)]"
+                      ? "live-dot bg-primary shadow-[0_0_6px_rgba(128,102,255,0.5)]"
                       : "bg-muted-foreground",
                   )}
                 />
@@ -451,9 +509,9 @@ function LiveRoomSurface({
         })}
 
         {tracks.length < 2 ? (
-          <div className="glass-panel grid aspect-video place-items-center rounded-2xl border border-dashed border-border/30">
+          <div className="grid aspect-video place-items-center rounded-xl border border-dashed border-border/50 bg-[#111118]">
             <div className="text-center">
-              <LoaderCircle className="mx-auto size-6 animate-spin text-primary drop-shadow-[0_0_6px_rgba(0,240,255,0.3)]" />
+              <LoaderCircle className="mx-auto size-6 animate-spin text-primary drop-shadow-[0_0_6px_rgba(128,102,255,0.3)]" />
               <p className="mt-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                 Waiting for opponent connection
               </p>
@@ -477,7 +535,7 @@ function LiveRoomSurface({
                 "bg-white/[0.02] px-3 py-3 font-mono text-[9px] uppercase tracking-wider text-muted-foreground transition-all duration-300",
                 index === timer.phaseIndex &&
                   timer.running &&
-                  "bg-primary/15 text-primary shadow-[inset_0_0_12px_rgba(0,240,255,0.05)]",
+                  "bg-primary/15 text-primary shadow-[inset_0_0_12px_rgba(128,102,255,0.05)]",
                 index < timer.phaseIndex && "text-secondary",
               )}
             >
@@ -524,7 +582,7 @@ function LiveControls({
   }, [canSpeak, isMicrophoneEnabled, localParticipant]);
 
   return (
-    <div className="glass-panel flex items-center justify-center gap-2 rounded-full p-2">
+    <div className="flex items-center justify-center gap-2 rounded-xl border border-white/[0.09] bg-[#111118] p-2">
       <Button
         size="icon"
         variant={isMicrophoneEnabled ? "ghost" : "destructive"}

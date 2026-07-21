@@ -23,7 +23,7 @@ const sections = [
     title: "Protect privacy",
     body: [
       "Do not share addresses, phone numbers, account credentials, or other private identifying information.",
-      "CivicRound does not record showcase rounds. Participants must not secretly record or redistribute another person's feed.",
+      "CivicRound does not retain room audio or video. AI-judged fights temporarily process each consented timed speech for transcription, and participants must not secretly record or redistribute another person's feed.",
     ],
   },
   {

@@ -8,7 +8,7 @@ import {
   Clock3,
   Copy,
   Link2,
-  Radar,
+  LoaderCircle,
   Swords,
   UsersRound,
   Zap,
@@ -19,7 +19,7 @@ import type {
   DebateSession,
   DebateSetup,
   DebateTopic,
-  GuestProfile,
+  ParticipantProfile,
 } from "@/features/debate/types/debate.types";
 import {
   cancelDebateInvite,
@@ -38,7 +38,7 @@ export function MatchStep({
   onBack,
   onMatched,
 }: {
-  profile: GuestProfile;
+  profile: ParticipantProfile;
   setup: DebateSetup;
   topic: DebateTopic;
   onBack: () => void;
@@ -47,6 +47,7 @@ export function MatchStep({
   const [match, setMatch] = useState<DebateSession | null>(null);
   const [inviteUrl, setInviteUrl] = useState("");
   const [copied, setCopied] = useState(false);
+  const [demoChallengeReady, setDemoChallengeReady] = useState(false);
   const queueAbortRef = useRef<AbortController | null>(null);
   const inviteAbortRef = useRef<AbortController | null>(null);
   const inviteCodeRef = useRef<string | null>(null);
@@ -67,23 +68,28 @@ export function MatchStep({
     mutationFn: (inviteCode: string) => {
       inviteAbortRef.current?.abort();
       inviteAbortRef.current = new AbortController();
-      return waitForInviteMatch(inviteCode, inviteAbortRef.current.signal);
+      return waitForInviteMatch(
+        inviteCode,
+        setup,
+        inviteAbortRef.current.signal,
+      );
     },
     onSuccess: setMatch,
   });
 
   const inviteCreation = useMutation({
-    mutationFn: () => createDebateInvite(setup),
-    onSuccess: async ({ code, url }) => {
+    mutationFn: () => createDebateInvite(setup, profile),
+    onSuccess: async ({ code, url, localDemo }) => {
       inviteCodeRef.current = code;
       setInviteUrl(url);
+      setDemoChallengeReady(localDemo);
       try {
         await navigator.clipboard.writeText(url);
         setCopied(true);
       } catch {
         setCopied(false);
       }
-      inviteWaiting.mutate(code);
+      if (!localDemo) inviteWaiting.mutate(code);
     },
   });
 
@@ -91,7 +97,7 @@ export function MatchStep({
     mutationFn: async () => {
       queueAbortRef.current?.abort();
       await cancelMatchmaking();
-      return getCurrentDebateMatch();
+      return getCurrentDebateMatch(profile, setup);
     },
     onSuccess: (existingMatch) => {
       if (!activeRef.current) return;
@@ -104,16 +110,21 @@ export function MatchStep({
   });
 
   const startMatchmaking = matchmaking.mutate;
+  const startInvite = inviteCreation.mutate;
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       if (autoStartRef.current) return;
       autoStartRef.current = true;
-      startMatchmaking();
+      if (setup.mode === "challenge" && !setup.inviteCode) {
+        startInvite();
+      } else {
+        startMatchmaking();
+      }
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [startMatchmaking]);
+  }, [setup.inviteCode, setup.mode, startInvite, startMatchmaking]);
 
   useEffect(() => {
     activeRef.current = true;
@@ -162,10 +173,9 @@ export function MatchStep({
   };
 
   return (
-    <section className="screen-enter relative isolate flex min-h-[calc(100svh-3rem)] items-center justify-center overflow-hidden px-3 py-4 sm:px-6 sm:py-6 lg:min-h-[calc(100svh-3.5rem)] lg:px-8">
-      <div className="pointer-events-none absolute inset-0 -z-20 bg-[radial-gradient(circle_at_50%_34%,rgba(0,240,255,0.045),transparent_28%),linear-gradient(rgba(255,255,255,0.012)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.012)_1px,transparent_1px)] bg-[size:auto,60px_60px,60px_60px]" />
+    <section className="screen-enter relative isolate flex min-h-[calc(100svh-3.5rem)] items-center justify-center overflow-hidden px-3 py-4 sm:px-6 sm:py-6 lg:min-h-[calc(100svh-4rem)] lg:px-8">
 
-      <div className="w-full max-w-[56rem] overflow-hidden rounded-[1.5rem] border border-white/[0.08] bg-[#090c11]/95 shadow-[0_32px_110px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.025)] backdrop-blur-xl sm:rounded-[2rem]">
+      <div className="w-full max-w-[56rem] overflow-hidden rounded-2xl border border-white/[0.09] bg-[#101017]/98 shadow-[0_24px_72px_rgba(0,0,0,0.38)]">
         <header className="border-b border-white/[0.07] px-5 py-5 sm:px-7 sm:py-6">
           <div className="flex items-center justify-between gap-3">
             <div className="inline-flex items-center gap-2 font-mono text-[8px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:text-[9px]">
@@ -183,15 +193,17 @@ export function MatchStep({
                 ? "Match confirmed"
                 : isSearching
                   ? "Queue in progress"
-                  : setup.inviteCode
+                  : setup.mode === "challenge" || setup.inviteCode
                     ? "Private queue"
-                    : "Public queue"}
+                    : setup.mode === "ranked"
+                      ? "Rated queue"
+                      : "Public queue"}
             </div>
 
             <button
               type="button"
               onClick={leaveMatchmaking}
-              className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/[0.06] px-2.5 text-[9px] text-muted-foreground transition-colors hover:border-white/10 hover:bg-white/[0.035] hover:text-foreground sm:px-3 sm:text-[10px]"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.08] px-2.5 text-[9px] text-muted-foreground transition-colors hover:border-white/10 hover:bg-white/[0.035] hover:text-foreground sm:px-3 sm:text-[10px]"
             >
               <ArrowLeft className="size-3" />
               Signal check
@@ -202,14 +214,22 @@ export function MatchStep({
             {match
               ? "Your opponent is ready"
               : isSearching
-                ? "Finding the right opponent"
+                ? setup.mode === "challenge"
+                  ? "Waiting for your challenger"
+                  : setup.mode === "ranked"
+                    ? "Finding a rated opponent"
+                    : "Finding the right opponent"
                 : "Find your opponent"}
           </h1>
           <p className="mt-1.5 max-w-xl text-xs leading-5 text-muted-foreground sm:text-sm">
             {match
               ? "Both sides are confirmed. Opening your shared room."
               : isSearching
-                ? "We are matching this motion with someone defending the other side."
+                ? setup.mode === "challenge"
+                  ? "Your private link is ready. The room opens when your friend accepts."
+                  : setup.mode === "ranked"
+                    ? "Searching within your rating band for an eligible competitor."
+                    : "We are matching this motion with someone defending the other side."
                 : "One motion, two positions, and a focused live debate."}
           </p>
         </header>
@@ -260,7 +280,7 @@ export function MatchStep({
 
         <div className="px-4 py-4 sm:px-7 sm:py-6">
           <div className="grid grid-cols-[minmax(0,1fr)_2.75rem_minmax(0,1fr)] items-stretch gap-1.5 sm:grid-cols-[minmax(0,1fr)_4.5rem_minmax(0,1fr)] sm:gap-3">
-            <div className="relative flex min-h-[13.5rem] min-w-0 items-center justify-center overflow-hidden rounded-[1.25rem] border border-secondary/15 bg-[radial-gradient(circle_at_50%_42%,rgba(56,232,198,0.09),transparent_58%)] p-3 sm:min-h-[15rem] sm:rounded-[1.5rem] sm:p-5">
+            <div className="relative flex min-h-[13.5rem] min-w-0 items-center justify-center overflow-hidden rounded-xl border border-secondary/20 bg-[#13121b] p-3 sm:min-h-[15rem] sm:rounded-xl sm:p-5">
               <span className="absolute left-3 top-3 font-mono text-[7px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/45">
                 Your seat
               </span>
@@ -276,14 +296,14 @@ export function MatchStep({
             </div>
 
             <div className="relative flex items-center justify-center">
-              <span className="absolute left-0 right-0 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-white/[0.04] via-primary/25 to-white/[0.04]" />
-              <span className="relative grid size-9 place-items-center rounded-full border border-white/10 bg-[#0d1015] font-display text-[8px] font-bold tracking-[0.14em] text-foreground shadow-[0_10px_30px_rgba(0,0,0,0.38)] sm:size-11 sm:text-[9px]">
+              <span className="absolute left-0 right-0 top-1/2 h-px -translate-y-1/2 bg-white/[0.1]" />
+              <span className="relative grid size-9 place-items-center rounded-full border border-white/10 bg-[#15151d] font-display text-[8px] font-bold tracking-[0.14em] text-foreground shadow-[0_10px_30px_rgba(0,0,0,0.38)] sm:size-11 sm:text-[9px]">
                 VS
               </span>
             </div>
 
             {match ? (
-              <div className="relative flex min-h-[13.5rem] min-w-0 items-center justify-center overflow-hidden rounded-[1.25rem] border border-primary/15 bg-[radial-gradient(circle_at_50%_42%,rgba(0,240,255,0.07),transparent_58%)] p-3 sm:min-h-[15rem] sm:rounded-[1.5rem] sm:p-5">
+              <div className="relative flex min-h-[13.5rem] min-w-0 items-center justify-center overflow-hidden rounded-xl border border-primary/20 bg-[#13121b] p-3 sm:min-h-[15rem] sm:rounded-xl sm:p-5">
                 <span className="absolute left-3 top-3 font-mono text-[7px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/45">
                   Opponent
                 </span>
@@ -300,7 +320,7 @@ export function MatchStep({
             ) : (
               <div
                 className={cn(
-                  "relative flex min-h-[13.5rem] min-w-0 flex-col items-center justify-center overflow-hidden rounded-[1.25rem] border border-dashed p-3 transition-colors sm:min-h-[15rem] sm:rounded-[1.5rem] sm:p-5",
+                  "relative flex min-h-[13.5rem] min-w-0 flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed p-3 transition-colors sm:min-h-[15rem] sm:rounded-xl sm:p-5",
                   isSearching
                     ? "border-primary/25 bg-primary/[0.025]"
                     : "border-white/[0.09] bg-white/[0.012]",
@@ -360,7 +380,7 @@ export function MatchStep({
             <Button
               size="lg"
               disabled
-              className="h-12 w-full rounded-full border-primary/30 bg-primary/10 font-semibold text-primary"
+              className="h-12 w-full rounded-lg border-primary/30 bg-primary/10 font-semibold text-primary"
             >
               <Zap className="mr-1 size-4" />
               Opening live room
@@ -371,12 +391,12 @@ export function MatchStep({
                 size="lg"
                 variant="ghost"
                 onClick={leaveMatchmaking}
-                className="h-12 w-full rounded-full border border-destructive/25 bg-destructive/[0.07] text-destructive hover:border-destructive/35 hover:bg-destructive/10 hover:text-destructive"
+                className="h-12 w-full rounded-lg border border-destructive/25 bg-destructive/[0.07] text-destructive hover:border-destructive/35 hover:bg-destructive/10 hover:text-destructive"
               >
                 <span className="live-dot mr-1 size-2 rounded-full bg-destructive" />
                 Stop matchmaking
               </Button>
-              {!setup.inviteCode && !inviteUrl ? (
+              {setup.mode === "casual" && !setup.inviteCode && !inviteUrl ? (
                 <button
                   type="button"
                   onClick={switchToInvite}
@@ -392,19 +412,33 @@ export function MatchStep({
               <Button
                 size="lg"
                 onClick={() => matchmaking.mutate()}
-                disabled={inviteCreation.isPending || inviteSwitch.isPending}
-                className="h-12 rounded-full border-primary/50 bg-gradient-to-r from-primary to-secondary px-7 font-semibold text-primary-foreground shadow-[0_0_24px_rgba(0,240,255,0.16)] transition-all duration-300 hover:brightness-110 hover:shadow-[0_0_34px_rgba(0,240,255,0.28)]"
+                disabled={
+                  inviteCreation.isPending ||
+                  inviteSwitch.isPending ||
+                  (setup.mode === "challenge" && Boolean(inviteUrl))
+                }
+                className="h-12 rounded-lg border-[#8066ff] bg-[#8066ff] px-7 font-semibold text-white shadow-[0_10px_28px_rgba(128,102,255,0.18)] transition-all duration-200 hover:-translate-y-px hover:border-[#957fff] hover:bg-[#957fff] hover:shadow-[0_14px_34px_rgba(128,102,255,0.25)] active:translate-y-0"
               >
                 <Swords className="mr-1 size-4" />
-                {setup.inviteCode ? "Join private match" : error ? "Try again" : "Find Match"}
+                {setup.inviteCode
+                  ? "Join private match"
+                  : setup.mode === "challenge"
+                    ? inviteUrl
+                      ? "Challenge link ready"
+                      : "Create challenge link"
+                    : error
+                      ? "Try again"
+                      : setup.mode === "ranked"
+                        ? "Find ranked match"
+                        : "Find Match"}
               </Button>
-              {!setup.inviteCode ? (
+              {setup.mode === "casual" && !setup.inviteCode ? (
                 <Button
                   size="lg"
                   variant="ghost"
                   onClick={() => inviteCreation.mutate()}
                   disabled={inviteCreation.isPending || inviteSwitch.isPending}
-                  className="h-12 rounded-full border border-white/[0.07] px-6 text-muted-foreground hover:border-white/12 hover:bg-white/[0.04] hover:text-foreground"
+                  className="h-12 rounded-lg border border-white/[0.09] px-6 text-muted-foreground hover:border-white/12 hover:bg-white/[0.04] hover:text-foreground"
                 >
                   <Link2 className="mr-1 size-4" />
                   {inviteCreation.isPending ? "Creating..." : "Invite a friend"}
@@ -420,26 +454,42 @@ export function MatchStep({
           ) : null}
 
           {inviteUrl ? (
-            <div className="mt-3 flex items-center gap-2 rounded-full border border-white/[0.07] bg-white/[0.03] px-3 py-2">
-              <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground">
-                {inviteUrl}
-              </span>
-              <button
-                type="button"
-                aria-label={copied ? "Invite link copied" : "Copy invite link"}
-                onClick={async () => {
-                  await navigator.clipboard.writeText(inviteUrl);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                }}
-                className="shrink-0 text-primary transition-colors hover:text-primary/80"
-              >
-                {copied ? (
-                  <Check className="size-4" />
-                ) : (
-                  <Copy className="size-4" />
-                )}
-              </button>
+            <div className="mt-3 space-y-2">
+              <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2">
+                <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground">
+                  {inviteUrl}
+                </span>
+                <button
+                  type="button"
+                  aria-label={copied ? "Invite link copied" : "Copy invite link"}
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(inviteUrl);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="shrink-0 text-primary transition-colors hover:text-primary/80"
+                >
+                  {copied ? (
+                    <Check className="size-4" />
+                  ) : (
+                    <Copy className="size-4" />
+                  )}
+                </button>
+              </div>
+              {demoChallengeReady ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="h-11 w-full rounded-lg"
+                  onClick={() => matchmaking.mutate()}
+                  disabled={matchmaking.isPending}
+                >
+                  <UsersRound className="mr-1 size-4" />
+                  {matchmaking.isPending
+                    ? "Friend is joining..."
+                    : "Simulate friend accepting"}
+                </Button>
+              ) : null}
             </div>
           ) : null}
         </footer>
@@ -450,14 +500,10 @@ export function MatchStep({
 
 function SearchScanner() {
   return (
-    <div className="match-scanner" aria-hidden="true">
-      <span className="match-scanner-grid" />
-      <span className="match-scanner-sweep" />
-      <span className="match-scanner-core">
-        <Radar className="size-5 sm:size-6" />
+    <div className="grid size-full place-items-center" aria-hidden="true">
+      <span className="grid size-16 place-items-center rounded-full border border-primary/20 bg-primary/[0.07] sm:size-20">
+        <LoaderCircle className="size-7 animate-spin text-primary sm:size-8" />
       </span>
-      <span className="match-scanner-dot match-scanner-dot-one" />
-      <span className="match-scanner-dot match-scanner-dot-two" />
     </div>
   );
 }
@@ -486,8 +532,8 @@ function Avatar({
           className={cn(
             "relative grid size-20 place-items-center rounded-full border font-display text-2xl font-bold shadow-[0_16px_45px_rgba(0,0,0,0.3)] sm:size-28 sm:text-3xl",
             stance === "support"
-              ? "border-secondary/35 bg-[radial-gradient(circle_at_35%_30%,rgba(56,232,198,0.25),rgba(56,232,198,0.07)_55%,rgba(0,0,0,0.2))] text-secondary"
-              : "border-accent/35 bg-[radial-gradient(circle_at_35%_30%,rgba(255,215,0,0.22),rgba(255,215,0,0.06)_55%,rgba(0,0,0,0.2))] text-accent",
+              ? "border-secondary/35 bg-secondary/10 text-secondary"
+              : "border-accent/35 bg-accent/10 text-accent",
           )}
         >
           {name.slice(0, 1).toUpperCase()}

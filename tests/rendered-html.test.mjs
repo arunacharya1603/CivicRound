@@ -14,36 +14,72 @@ async function render() {
   );
 }
 
-test("server-renders the CivicRound entry experience", async () => {
+test("server-renders the CivicRound landing page", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
   assert.match(html, /<title>CivicRound<\/title>/i);
-  assert.match(html, /Preparing your session/i);
+  assert.match(html, /Take a side/i);
+  assert.match(html, /Win the argument/i);
+  assert.match(html, /Enter the arena/i);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Your site is taking shape/i);
 });
 
 test("keeps routes thin and product code feature-based", async () => {
-  const [page, app, room, guestAuth, packageJson] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../features/debate/components/civic-round-app.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../features/debate/components/debate-room.tsx", import.meta.url), "utf8"),
-    readFile(
-      new URL("../features/auth/services/guest-auth.service.ts", import.meta.url),
-      "utf8",
-    ),
-    readFile(new URL("../package.json", import.meta.url), "utf8"),
-  ]);
+  const [page, arenaPage, landing, app, room, modeStep, guestAuth, packageJson] =
+    await Promise.all([
+      readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../app/arena/page.tsx", import.meta.url), "utf8"),
+      readFile(
+        new URL(
+          "../features/marketing/components/landing-page.tsx",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+      readFile(
+        new URL(
+          "../features/debate/components/civic-round-app.tsx",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+      readFile(
+        new URL(
+          "../features/debate/components/debate-room.tsx",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+      readFile(
+        new URL("../features/modes/components/mode-step.tsx", import.meta.url),
+        "utf8",
+      ),
+      readFile(
+        new URL("../features/auth/services/guest-auth.service.ts", import.meta.url),
+        "utf8",
+      ),
+      readFile(new URL("../package.json", import.meta.url), "utf8"),
+    ]);
 
-  assert.match(page, /<CivicRoundApp \/>/);
+  assert.match(page, /<LandingPage \/>/);
+  assert.match(arenaPage, /<CivicRoundApp \/>/);
+  assert.match(landing, /Take a side/);
+  assert.match(landing, /href="[/]arena"/);
   assert.match(app, /ProfileStep/);
+  assert.match(app, /ModeStep/);
+  assert.match(app, /AccountStep/);
   assert.match(app, /RoundStep/);
   assert.match(app, /DeviceStep/);
   assert.match(app, /MatchStep/);
   assert.match(app, /DebateRoom/);
   assert.match(room, /useDebateTimer/);
+  assert.match(modeStep, /Casual Fight/);
+  assert.match(modeStep, /Ranked Fight/);
+  assert.match(modeStep, /Challenge a Friend/);
+  assert.match(modeStep, /AI Practice/);
   assert.match(app, /readGuestIdentity/);
   assert.match(guestAuth, /sessionStorage/);
   assert.doesNotMatch(guestAuth, /localStorage\.setItem/);
@@ -54,11 +90,18 @@ test("keeps routes thin and product code feature-based", async () => {
   await assert.rejects(access(new URL("../app/_sites-preview", import.meta.url)));
 });
 test("defines the production backend contract", async () => {
-  const [migration, tokenRoute, matchmaking, liveRoom, envExample] =
+  const [migration, productModes, tokenRoute, matchmaking, liveRoom, envExample] =
     await Promise.all([
       readFile(
         new URL(
           "../supabase/migrations/202607150001_civicround.sql",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+      readFile(
+        new URL(
+          "../supabase/migrations/202607210001_product_modes.sql",
           import.meta.url,
         ),
         "utf8",
@@ -87,9 +130,15 @@ test("defines the production backend contract", async () => {
   assert.match(migration, /create or replace function public\.join_matchmaking/);
   assert.match(migration, /create or replace function public\.mark_debate_room_ready/);
   assert.match(migration, /enable row level security/);
+  assert.match(productModes, /create table if not exists public\.competitor_profiles/);
+  assert.match(productModes, /create or replace function public\.join_mode_matchmaking/);
+  assert.match(productModes, /create or replace function public\.submit_match_appeal/);
+  assert.match(productModes, /create or replace function public\.create_ai_practice_room/);
+  assert.match(productModes, /Ranked play requires a persistent account/);
   assert.match(tokenRoute, /Room membership required/);
   assert.match(matchmaking, /get_matchmaking_status/);
   assert.match(matchmaking, /claim_debate_invite/);
+  assert.match(matchmaking, /window[.]location[.]pathname/);
   assert.match(liveRoom, /useSynchronizedDebateTimer/);
   assert.match(envExample, /NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY/);
 });
@@ -180,7 +229,7 @@ test("protects browser-audit regressions", async () => {
       new URL("../features/video/components/livekit-debate-room.tsx", import.meta.url),
       "utf8",
     ),
-  ]);
+    ]);
 
   assert.match(roundStep, /min-h-\[8\.5rem\]/);
   assert.doesNotMatch(deviceStep, /Run check/);

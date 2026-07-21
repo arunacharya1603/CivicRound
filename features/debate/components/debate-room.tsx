@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Bot,
   Camera,
   CameraOff,
   Flag,
@@ -19,12 +20,15 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { DebateTopic } from "@/features/debate/types/debate.types";
+import type {
+  DebateRoomOutcome,
+  DebateTopic,
+} from "@/features/debate/types/debate.types";
 import { buildDebatePhases } from "@/features/debate/lib/debate-phases";
 import type {
   DebateSession,
   DebateSetup,
-  GuestProfile,
+  ParticipantProfile,
 } from "@/features/debate/types/debate.types";
 import { ReportDialog } from "@/features/reporting/components/report-dialog";
 import type { MediaDeviceController } from "@/hooks/use-media-devices";
@@ -40,12 +44,12 @@ export function DebateRoom({
   media,
   onComplete,
 }: {
-  profile: GuestProfile;
+  profile: ParticipantProfile;
   topic: DebateTopic;
   setup: DebateSetup;
   session: DebateSession;
   media: MediaDeviceController;
-  onComplete: () => void;
+  onComplete: (outcome: DebateRoomOutcome) => void;
 }) {
   const [reportOpen, setReportOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -53,8 +57,9 @@ export function DebateRoom({
     () => buildDebatePhases(setup.duration, session.speakerOrder),
     [session.speakerOrder, setup.duration],
   );
-  const timer = useDebateTimer(phases, onComplete);
+  const timer = useDebateTimer(phases, () => onComplete("complete"));
   const isYourTurn = !timer.running || timer.currentPhase?.speaker === "you";
+  const isPractice = session.source === "ai";
 
   useEffect(() => {
     if (videoRef.current) {
@@ -66,10 +71,12 @@ export function DebateRoom({
   const secondsStr = String(timer.secondsLeft % 60).padStart(2, "0");
 
   return (
-    <section className="screen-enter mx-auto max-w-[1440px] px-3 py-4 sm:px-6 lg:px-8">
-      <div className="grid gap-3 border border-border bg-card p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-4">
+    <section className="screen-enter mx-auto w-full max-w-[1440px] px-3 py-3 sm:px-6 sm:py-4 lg:px-8">
+      <div className="grid gap-3 rounded-xl border border-white/[0.09] bg-[#111118] p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-4">
         <div className="min-w-0">
-          <p className="font-mono text-[9px] uppercase text-muted-foreground">{topic.category} / Live motion</p>
+          <p className="font-mono text-[9px] uppercase text-muted-foreground">
+            {topic.category} / {isPractice ? "AI practice motion" : "Live motion"}
+          </p>
           <h1 className="mt-1 font-display text-lg font-semibold leading-tight [overflow-wrap:anywhere] sm:text-2xl">
             {topic.statement}
           </h1>
@@ -82,14 +89,21 @@ export function DebateRoom({
             <p className="font-mono text-[9px] uppercase text-accent">{timer.running ? timer.currentPhase.label : "Round ready"}</p>
             <p className="font-mono text-3xl font-semibold tabular-nums">{minutesStr}:{secondsStr}</p>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => setReportOpen(true)}>
-            <Flag />
-            <span className="hidden sm:inline">Report</span>
-          </Button>
+          {!isPractice ? (
+            <Button variant="ghost" size="sm" onClick={() => setReportOpen(true)}>
+              <Flag />
+              <span className="hidden sm:inline">Report</span>
+            </Button>
+          ) : (
+            <span className="inline-flex items-center gap-2 border border-primary/30 bg-primary/10 px-3 py-2 font-mono text-[8px] font-semibold uppercase tracking-[0.11em] text-primary">
+              <Bot className="size-3.5" />
+              AI opponent
+            </span>
+          )}
         </div>
       </div>
 
-      <Progress value={timer.phaseProgress} className="h-1 rounded-none bg-border [&>div]:bg-accent" />
+      <Progress value={timer.phaseProgress} className="mt-[-1px] h-1 rounded-none bg-border/60 [&>div]:bg-primary" />
 
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <VideoPlate
@@ -116,10 +130,24 @@ export function DebateRoom({
           name={session.opponentName}
           stance={session.opponentStance}
           active={timer.running && !isYourTurn}
-          status={timer.running && !isYourTurn ? "Speaking now" : session.source === "demo" ? "Demo feed" : "Connected"}
+          status={
+            isPractice
+              ? timer.running && !isYourTurn
+                ? "AI response turn"
+                : "AI opponent"
+              : timer.running && !isYourTurn
+                ? "Speaking now"
+                : session.source === "demo"
+                  ? "Demo feed"
+                  : "Connected"
+          }
           accent="accent"
         >
-          <InitialFeed name={session.opponentName} signal />
+          {isPractice ? (
+            <AiFeed difficulty={setup.aiDifficulty ?? "challenger"} />
+          ) : (
+            <InitialFeed name={session.opponentName} signal />
+          )}
         </VideoPlate>
       </div>
 
@@ -140,7 +168,7 @@ export function DebateRoom({
           ))}
         </div>
 
-        <div className="flex items-center justify-center gap-2 rounded border border-border bg-card p-2">
+        <div className="flex items-center justify-center gap-2 rounded-xl border border-white/[0.09] bg-[#111118] p-2">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button size="icon" variant={media.microphoneEnabled ? "ghost" : "destructive"} onClick={media.toggleMicrophone} aria-label="Toggle microphone">
@@ -164,9 +192,24 @@ export function DebateRoom({
               Go live
             </Button>
           ) : null}
+          {isPractice ? (
+            <Button
+              variant="secondary"
+              onClick={() => onComplete("complete")}
+            >
+              Finish practice demo
+            </Button>
+          ) : null}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button size="icon" variant="destructive" onClick={onComplete} aria-label="Leave room">
+              <Button
+                size="icon"
+                variant="destructive"
+                onClick={() =>
+                  onComplete(setup.isRated ? "forfeit" : "cancelled")
+                }
+                aria-label={setup.isRated ? "Forfeit and leave" : "Leave room"}
+              >
                 <LogOut />
               </Button>
             </TooltipTrigger>
@@ -175,13 +218,15 @@ export function DebateRoom({
         </div>
       </div>
 
-      <ReportDialog
-        open={reportOpen}
-        onOpenChange={setReportOpen}
-        matchId={session.id}
-        opponentId={session.opponentId}
-        opponentName={session.opponentName}
-      />
+      {!isPractice ? (
+        <ReportDialog
+          open={reportOpen}
+          onOpenChange={setReportOpen}
+          matchId={session.id}
+          opponentId={session.opponentId}
+          opponentName={session.opponentName}
+        />
+      ) : null}
     </section>
   );
 }
@@ -204,12 +249,12 @@ function VideoPlate({
   return (
     <div
       className={cn(
-        "relative aspect-video overflow-hidden rounded border-2 bg-black transition-all duration-300",
+        "relative aspect-video overflow-hidden rounded-xl border bg-black transition-all duration-300",
         active
           ? accent === "primary"
-            ? "border-primary shadow-[0_0_15px_rgba(255,85,46,0.35)] ring-1 ring-primary/50"
-            : "border-accent shadow-[0_0_15px_rgba(242,193,77,0.35)] ring-1 ring-accent/50"
-          : "border-border opacity-70",
+            ? "border-primary/55 shadow-[0_12px_34px_rgba(128,102,255,0.2)] ring-1 ring-primary/30"
+            : "border-accent/55 shadow-[0_12px_34px_rgba(168,148,255,0.18)] ring-1 ring-accent/30"
+          : "border-border opacity-85",
       )}
     >
       {children}
@@ -229,20 +274,34 @@ function VideoPlate({
 
 function InitialFeed({ name, signal = false }: { name: string; signal?: boolean }) {
   return (
-    <div className="grid h-full place-items-center bg-[#0f1313]">
+    <div className="grid h-full place-items-center bg-[#101017]">
       <div className="text-center">
         <div className="mx-auto grid size-24 place-items-center rounded-full border border-border bg-card font-display text-4xl font-semibold text-muted-foreground">
           {name.slice(0, 1).toUpperCase()}
         </div>
         {signal ? (
-          <div className="mt-5 flex items-end justify-center gap-1 text-secondary">
-            {[10, 22, 15, 28, 17].map((height, index) => (
-              <span key={index} className="w-1 bg-current" style={{ height }} />
-            ))}
-          </div>
+          <Signal className="mx-auto mt-5 size-5 text-secondary" />
         ) : (
           <Signal className="mx-auto mt-5 size-5 text-muted-foreground" />
         )}
+      </div>
+    </div>
+  );
+}
+
+function AiFeed({ difficulty }: { difficulty: string }) {
+  return (
+    <div className="grid h-full place-items-center bg-[#0e0e16]">
+      <div className="text-center">
+        <div className="mx-auto grid size-24 place-items-center rounded-full border border-primary/30 bg-primary/10 text-primary">
+          <Bot className="size-10" strokeWidth={1.4} />
+        </div>
+        <p className="mt-5 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-primary">
+          Civic AI / {difficulty}
+        </p>
+        <p className="mx-auto mt-2 max-w-52 text-xs leading-5 text-muted-foreground">
+          Simulated practice opponent. No human participant is connected.
+        </p>
       </div>
     </div>
   );

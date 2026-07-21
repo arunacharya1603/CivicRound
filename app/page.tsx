@@ -1,5 +1,5 @@
-import { CivicRoundApp } from "@/features/debate/components/civic-round-app";
+import { LandingPage } from "@/features/marketing/components/landing-page";
 
 export default function Home() {
-  return <CivicRoundApp />;
+  return <LandingPage />;
 }

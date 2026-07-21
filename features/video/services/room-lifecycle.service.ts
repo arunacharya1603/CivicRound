@@ -47,11 +47,16 @@ export async function completeDebateRoom(roomId: string) {
   return response.data === true;
 }
 
-export async function leaveDebateRoom(roomId: string) {
+export async function leaveDebateRoom(roomId: string, isRated = false) {
   const supabase = requireSupabaseClient();
-  const response = await supabase.rpc("leave_debate_room", {
-    p_room_id: roomId,
-  });
+  let response = isRated
+    ? await supabase.rpc("forfeit_ranked_room", { p_room_id: roomId })
+    : await supabase.rpc("leave_debate_room", { p_room_id: roomId });
+  if (response.error && isRated) {
+    response = await supabase.rpc("leave_debate_room", {
+      p_room_id: roomId,
+    });
+  }
   if (response.error) throw response.error;
   return response.data as DebateRoomState["status"];
 }

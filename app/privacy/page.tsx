@@ -9,7 +9,7 @@ const sections = [
     title: "What we collect",
     body: [
       "The showcase uses a guest identifier, display name, selected motion, stance, round duration, room metadata, and any report you choose to submit.",
-      "Camera and microphone streams are used for the live conversation and are not recorded by CivicRound.",
+      "Camera video is not recorded. In an AI-judged fight, each consented timed speech is temporarily sent for transcription; the audio is discarded after processing while the transcript and scorecard remain with the match.",
     ],
   },
   {
@@ -22,7 +22,8 @@ const sections = [
   {
     title: "Service providers",
     body: [
-      "Supabase provides guest identity and structured data. LiveKit provides real-time video transport. Hosting and delivery providers process the minimum technical data required to operate the site.",
+      "Supabase provides identity and structured data. LiveKit provides real-time video transport. Google Gemini processes consented turn audio and debate transcripts for the AI Judge Beta. Hosting and delivery providers process the minimum technical data required to operate the site.",
+      "The showcase may use Gemini's free developer tier, under which Google states submitted content may be used to improve its products. Do not include confidential or highly sensitive information in a showcase debate.",
       "Each provider applies its own security and retention controls.",
     ],
   },
@@ -40,7 +41,7 @@ export default function PrivacyPage() {
     <LegalPage
       eyebrow="Showcase policy / Draft"
       title="Privacy"
-      intro="The showcase is designed to prove the live debate experience without recording conversations or building unnecessary personal profiles."
+      intro="The showcase avoids permanent audio or video recording. AI-judged fights temporarily process consented speech to create the transcript and explainable scorecard shown to both competitors."
       sections={sections}
     />
   );

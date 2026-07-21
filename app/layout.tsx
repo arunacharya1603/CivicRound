@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
+import { Geist, Geist_Mono, Newsreader, Space_Grotesk } from "next/font/google";
 import "@livekit/components-styles";
 import { Providers } from "./providers";
 import "./globals.css";
@@ -20,16 +20,23 @@ const displayFont = Space_Grotesk({
   weight: ["400", "500", "600", "700"],
 });
 
+const editorialFont = Newsreader({
+  variable: "--font-editorial",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  style: ["normal", "italic"],
+});
+
 export const metadata: Metadata = {
   title: {
     default: "CivicRound",
     template: "%s | CivicRound",
   },
-  description: "Two sides. Two minutes. One conversation.",
+  description: "Live 1v1 debates with equal time and controlled turns.",
   applicationName: "CivicRound",
   openGraph: {
     title: "CivicRound",
-    description: "Two sides. Two minutes. One conversation.",
+    description: "Live 1v1 debates with equal time and controlled turns.",
     type: "website",
   },
 };
@@ -41,7 +48,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${bodyFont.variable} ${monoFont.variable} ${displayFont.variable} antialiased`}>
+      <body className={`${bodyFont.variable} ${monoFont.variable} ${displayFont.variable} ${editorialFont.variable} antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

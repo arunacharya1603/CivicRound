@@ -41,7 +41,7 @@ export function RulesDialog({ trigger }: { trigger: ReactNode }) {
   return (
     <Dialog>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-h-[88svh] max-w-xl grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden rounded-[1.5rem] border-white/[0.09] bg-[#090b10]/95 p-0 shadow-[0_30px_100px_rgba(0,0,0,0.65),0_0_60px_rgba(0,240,255,0.05)] backdrop-blur-2xl sm:rounded-[1.75rem]">
+      <DialogContent className="max-h-[88svh] max-w-xl grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden rounded-2xl border-white/[0.1] bg-[#111118]/98 p-0 shadow-[0_30px_100px_rgba(0,0,0,0.65),0_0_60px_rgba(128,102,255,0.05)] backdrop-blur-2xl sm:rounded-2xl">
         <DialogHeader className="border-b border-white/[0.07] p-5 pr-14 text-left sm:p-6 sm:pr-16">
           <span className="mb-1 inline-flex w-fit items-center gap-2 font-mono text-[9px] font-semibold uppercase tracking-[0.2em] text-primary">
             <ShieldCheck className="size-3.5" />
@@ -66,7 +66,7 @@ export function RulesDialog({ trigger }: { trigger: ReactNode }) {
                 <span className="grid size-9 place-items-center rounded-full border border-primary/15 bg-primary/[0.07] text-primary sm:size-10">
                   <Icon className="size-4" />
                 </span>
-                <span className="absolute -left-0.5 -top-1 rounded-full bg-[#090b10] px-1 font-mono text-[8px] font-semibold text-primary/70">
+                <span className="absolute -left-0.5 -top-1 rounded-full bg-[#111118] px-1 font-mono text-[8px] font-semibold text-primary/70">
                   0{index + 1}
                 </span>
               </div>
@@ -87,7 +87,7 @@ export function RulesDialog({ trigger }: { trigger: ReactNode }) {
             You can leave any round instantly. CivicRound does not record showcase debates.
           </p>
           <DialogClose asChild>
-            <Button className="h-10 rounded-full border-primary/50 bg-gradient-to-r from-primary to-secondary px-6 text-primary-foreground hover:brightness-110">
+            <Button className="h-10 rounded-lg border-[#8066ff] bg-[#8066ff] px-6 text-white shadow-[0_8px_24px_rgba(128,102,255,0.18)] hover:border-[#957fff] hover:bg-[#957fff]">
               I understand
             </Button>
           </DialogClose>
